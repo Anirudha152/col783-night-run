@@ -67,6 +67,27 @@
   <p><strong>CLAHE</strong> = <strong>C</strong>ontrast <strong>L</strong>imited AHE. Clip the histogram at a max height. Spread the clipped pixels evenly over all bins. This caps the slope, so it caps the contrast boost.</p>
 </section>
 
+<section class="slide" data-key="matching">
+  <h3>Histogram matching</h3>
+  <p>Equalization makes the histogram flat. <strong>Matching</strong> makes it look like any target histogram \(p_z\) you choose.</p>
+  <ol>
+    <li>Equalize the input: \(s = T_r(r)\) (its CDF).</li>
+    <li>Equalize the target too: \(s = T_z(z)\) (target CDF).</li>
+    <li>Both give "flat" values \(s\), so connect them: \(z = T_z^{-1}(T_r(r))\).</li>
+  </ol>
+  <p>In practice: for each input level \(r\), pick the \(z\) whose target CDF is <strong>closest</strong> to the input CDF at \(r\). (Store \(T_z\) as a table and search it.)</p>
+  <h4>Worked example (4 levels)</h4>
+  <div class="tbl-wrap"><table class="mono">
+    <tr><th>level</th><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+    <tr><th>input p_r</th><td>0.4</td><td>0.3</td><td>0.2</td><td>0.1</td></tr>
+    <tr><th>input CDF</th><td>0.4</td><td>0.7</td><td>0.9</td><td>1.0</td></tr>
+    <tr><th>target p_z</th><td>0.1</td><td>0.2</td><td>0.3</td><td>0.4</td></tr>
+    <tr><th>target CDF</th><td>0.1</td><td>0.3</td><td>0.6</td><td>1.0</td></tr>
+    <tr><th>r → z</th><td>1</td><td>2</td><td>3</td><td>3</td></tr>
+  </table></div>
+  <p>Input CDF 0.4 is closest to target CDF 0.3, so 0 → 1. Then 0.7 → 0.6 (level 2), 0.9 → 1.0 (level 3), 1.0 → 1.0 (level 3). The new histogram is [0, 0.4, 0.3, 0.3]: close to the target, not exact (digital levels can't be split).</p>
+</section>
+
 <section class="slide practice">
   <h3>Exam-style practice</h3>
   <div class="q">
@@ -87,6 +108,7 @@
 <section class="slide sheet"><div class="card">
   <h3>Cheat sheet · intensity</h3>
   <ul>
+    <li><b>Matching</b> \(z = T_z^{-1}(T_r(r))\): pick z with target CDF closest to input CDF</li>
     <li><b>Negative</b>: \(L-1-r\)</li>
     <li><b>Contrast</b>: \(c(r-k)+k\)</li>
     <li><b>Gamma</b>: \(r^\gamma\); \(\gamma&lt;1\) brightens</li>

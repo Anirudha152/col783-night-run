@@ -33,6 +33,20 @@
   </ul>
 </section>
 
+<section class="slide" data-key="notch">
+  <h3>Periodic noise and optimum notch filtering</h3>
+  <p>Periodic noise (stripes, hum) = a few bright spikes in the spectrum, at \(\pm(u_k, v_k)\).</p>
+  <ul>
+    <li><strong>Notch reject</strong>: \(H_{NR}(u,v) = \prod_k H_{HP}(u-u_k, v-v_k)\,H_{HP}(u+u_k, v+v_k)\). A small high-pass "hole" at each spike and its twin.</li>
+    <li><strong>Notch pass</strong> \(H_{NP} = 1 - H_{NR}\) keeps only the spikes, so it gives you the noise pattern \(\eta\) itself.</li>
+  </ul>
+  <h4>When the noise strength changes across the image</h4>
+  <p>Model: \(g = f + w(x,y)\,\eta\), where \(\eta\) comes from the notch pass and \(w\) varies slowly. In each small window \(S_{xy}\), find one number \(w\) and subtract: \(\hat f = g - w\eta\).</p>
+  <p>Choose \(w\) to make \(\hat f\) as smooth as possible (smallest variance in the window):</p>
+  \[ \operatorname{var}(\hat f) = \operatorname{var}(g) + w^2\operatorname{var}(\eta) - 2w\operatorname{cov}(g,\eta) \;\Rightarrow\; \hat w = \frac{\operatorname{cov}(g,\eta)}{\operatorname{var}(\eta)} \]
+  <p>(Set the derivative in \(w\) to zero.) This is the same as making \(\hat f\) uncorrelated with \(\eta\) in the window.</p>
+</section>
+
 <section class="slide">
   <h3>Inverse filtering and why it explodes</h3>
   \[ \hat F = \frac{G}{H} = F + \frac{N}{H} \]
@@ -109,6 +123,8 @@
 <section class="slide sheet"><div class="card">
   <h3>Cheat sheet · restoration</h3>
   <ul>
+    <li>Notch: \(H_{NR} = \prod H_{HP}(\cdot\mp(u_k,v_k))\); \(H_{NP} = 1-H_{NR}\) gives η</li>
+    <li>Optimum notch: \(\hat f = g - w\eta\), \(w = \text{cov}(g,\eta)/\text{var}(\eta)\) per window</li>
     <li>\(g = h*f+\eta\), \(G = HF+N\); h = PSF</li>
     <li>Gauss → mean; S&amp;P → <b>median</b>; both → α-trimmed</li>
     <li>Mean of mn: var ÷ mn; NLM: compare patches</li>

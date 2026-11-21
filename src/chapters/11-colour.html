@@ -71,6 +71,13 @@
     <li><strong>Colour segmentation</strong>: threshold the distance to a target colour in RGB, or threshold hue and saturation.</li>
     <li><strong>Colour edges</strong>: gradients of each channel can cancel; use a combined vector gradient.</li>
   </ul>
+  <h4>Pseudocolour (false colour)</h4>
+  <p>People can tell apart thousands of colours, but only a few dozen grays. So we paint gray or multi-band images in colour just to <em>see</em> them better.</p>
+  <ul>
+    <li><strong>Intensity slicing</strong>: give each intensity range its own colour (e.g. highlight saturated pixels in red).</li>
+    <li><strong>Gray → colour map</strong>: three functions \(R(f), G(f), B(f)\) (like a heat map).</li>
+    <li><strong>Multispectral</strong>: put a different band in each channel, e.g. (infrared, green, blue) shown as (R, G, B). Plants glow red because they reflect infrared strongly.</li>
+  </ul>
   <div class="note"><b>Accessibility.</b> Colour-blind viewers may not see red vs green. Do not rely on colour alone to show information.</div>
 </section>
 

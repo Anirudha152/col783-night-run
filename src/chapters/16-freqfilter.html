@@ -36,6 +36,7 @@
   <h3>High-pass, emphasis, homomorphic</h3>
   <ul>
     <li><strong>High-pass</strong>: \(H_{HP} = 1 - H_{LP}\). Spatially \(h_{HP} = \delta - h_{LP}\). Keeps edges, kills flat areas (the mean becomes 0).</li>
+    <li><strong>Band-reject</strong> \(H_{BR} = H_{LP,1} + H_{HP,2}\) (keep low and high, drop a middle ring). <strong>Band-pass</strong> \(H_{BP} = 1 - H_{BR}\).</li>
     <li><strong>Unsharp masking</strong> in frequency: \(G = (1 + k H_{HP})F\). General high-frequency emphasis: \(H = k_1 + k_2 H_{HP}\).</li>
     <li><strong>Laplacian</strong> in frequency: \(H = -4\pi^2(u^2+v^2)\).</li>
   </ul>

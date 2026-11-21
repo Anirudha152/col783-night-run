@@ -105,8 +105,9 @@
 
   chapters.forEach((c) => {
     const slides = slidesOf(c.dataset.id);
-    slides.forEach((s, i) => {
-      s.dataset.sid = c.dataset.id + '.' + i;
+    let n = 0;
+    slides.forEach((s) => {
+      s.dataset.sid = c.dataset.id + '.' + (s.dataset.key || n++);
       const b = document.createElement('button');
       b.className = 'tick'; b.type = 'button'; b.innerHTML = ICON.check;
       b.setAttribute('aria-label', 'Mark slide done');

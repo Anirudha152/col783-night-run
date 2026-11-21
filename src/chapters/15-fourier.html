@@ -81,17 +81,54 @@
 </section>
 
 <section class="slide">
-  <h3>Sampling and aliasing</h3>
-  <p>Sampling every \(\Delta T\) = multiplying by an impulse train. In frequency, that makes <strong>copies</strong> of \(F\) every \(1/\Delta T\):</p>
-  \[ \tilde F(\mu) = \frac{1}{\Delta T}\sum_n F\Big(\mu - \frac{n}{\Delta T}\Big) \]
+  <h3>Sampling, step by step</h3>
+  <p><strong>Step 1: write the samples as impulses.</strong> (If we wrote "f at sample points, 0 elsewhere", its Fourier transform would be 0. Useless.)</p>
+  \[ \tilde f(t) = \sum_n f(n\Delta T)\,\delta(t - n\Delta T) = f(t)\cdot s_{\Delta T}(t), \qquad s_{\Delta T}(t) = \sum_n \delta(t - n\Delta T) \]
+  <p>\(s_{\Delta T}\) is an <strong>impulse train</strong>: a spike every \(\Delta T\).</p>
+  <p><strong>Step 2: the FT of an impulse train is an impulse train.</strong> Spikes every \(\Delta T\) in space ↔ spikes every \(1/\Delta T\) in frequency:</p>
+  \[ s_{\Delta T} \;\Longleftrightarrow\; \tfrac{1}{\Delta T}\,s_{1/\Delta T} \]
+  <p><strong>Step 3: multiply in space = convolve in frequency.</strong> Convolving \(F\) with spikes pastes a copy of \(F\) at every spike:</p>
+  \[ \tilde F(\mu) = F * \tfrac{1}{\Delta T}s_{1/\Delta T} = \frac{1}{\Delta T}\sum_n F\Big(\mu - \frac{n}{\Delta T}\Big) \]
   <figure>
     <svg class="plot" data-plot='{"w":520,"h":120,"x":[-6,6],"y":[0,1.2],"xl":"μ","curves":[{"f":"max(0,1-abs(x)/1.4)","c":1},{"f":"max(0,1-abs(x-3)/1.4)","c":2,"thin":true},{"f":"max(0,1-abs(x+3)/1.4)","c":2,"thin":true}],"text":[{"x":-0.6,"y":1.1,"t":"copies separate: OK","cl":"sm"}]}'></svg>
     <svg class="plot" data-plot='{"w":520,"h":120,"x":[-6,6],"y":[0,1.2],"xl":"μ","curves":[{"f":"max(0,1-abs(x)/1.4)","c":1},{"f":"max(0,1-abs(x-2)/1.4)","c":3,"thin":true},{"f":"max(0,1-abs(x+2)/1.4)","c":3,"thin":true}],"text":[{"x":-0.8,"y":1.1,"t":"copies overlap: aliasing","cl":"sm lbl3"}]}'></svg>
   </figure>
+  <h4>The sampling theorem (Nyquist–Shannon)</h4>
   <ul>
-    <li><strong>Nyquist</strong>: if \(f\) has no frequency above \(\mu_{\max}\), sample faster than \(2\mu_{\max}\). Then copies don't overlap and \(f\) can be rebuilt exactly (ideal low-pass = sinc interpolation).</li>
-    <li>Too slow → copies overlap → high frequencies pretend to be low ones: <strong>aliasing</strong> (moiré, jaggies).</li>
-    <li>Fix: <strong>low-pass filter before sampling</strong> (or before shrinking an image).</li>
+    <li>Say \(F(\mu) = 0\) outside \([-\mu_{\max}, \mu_{\max}]\) (<strong>band-limited</strong>).</li>
+    <li>The copies sit \(1/\Delta T\) apart. They don't overlap if \(\dfrac{1}{\Delta T} &gt; 2\mu_{\max}\). (\(2\mu_{\max}\) is the <strong>Nyquist rate</strong>.)</li>
+    <li>Then \(f\) can be rebuilt <strong>exactly</strong> from its samples.</li>
+    <li>Flip it around: sampling at rate \(1/\Delta T\) can only capture frequencies up to \(\dfrac{1}{2\Delta T}\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Getting the signal back, and aliasing</h3>
+  <h4>Rebuilding f: keep only the middle copy</h4>
+  <p>Multiply by a box (ideal low-pass): \(F = H\tilde F\), with \(H(\mu) = \Delta T\) for \(|\mu| \le \frac{1}{2\Delta T}\), 0 otherwise.</p>
+  <p>In space, the box is a sinc, and convolving a sinc with impulses places a sinc at every sample:</p>
+  \[ f(t) = \sum_n f(n\Delta T)\,\text{sinc}\Big(\frac{t - n\Delta T}{\Delta T}\Big) \qquad \text{(sinc interpolation)} \]
+  <ul>
+    <li><strong>Nearest neighbour</strong> = the same formula with \(h\) = box of width \(\Delta T\).</li>
+    <li><strong>Linear interpolation</strong> = \(h\) = tent of width \(2\Delta T\) (box * box).</li>
+    <li>These are worse low-pass filters than the ideal box in frequency, so a bit of the other copies leaks in (blocky or blurry results).</li>
+  </ul>
+  <h4>Aliasing: sampling too slowly</h4>
+  <p>If \(1/\Delta T &lt; 2\mu_{\max}\), the copies overlap. A high frequency looks exactly like a low one: an <strong>alias</strong> (false identity).</p>
+  <figure>
+    <svg class="plot" data-plot='{"w": 520, "h": 150, "x": [0, 10], "y": [-1.3, 1.3], "xl": "n (samples)", "curves": [{"f": "cos(2*PI*0.8*x)", "c": 2, "thin": true, "n": 900, "t": "real: 0.8 cycles/sample", "tx": 0.3, "ty": 1.15, "tdy": 0}, {"f": "cos(2*PI*0.2*x)", "c": 3, "dash": true, "t": "what the samples show: 0.2", "tx": 5.6, "ty": -1.2, "tdy": 0}], "stems": [{"c": 1, "pts": [[0, 1.0], [1, 0.309], [2, -0.809], [3, -0.809], [4, 0.309], [5, 1.0], [6, 0.309], [7, -0.809], [8, -0.809], [9, 0.309], [10, 1.0]]}]}'></svg>
+    <figcaption>Orange dots: samples of the teal wave (0.8 cycles per sample). They fit the rose wave (0.2 cycles per sample) perfectly. From the samples alone you can't tell which one it was.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Where the alias lands</strong>: a frequency \(\mu\) shows up at \(|\mu - k\cdot\text{rate}|\), using the multiple of the rate that brings it into \([0, \text{rate}/2]\). E.g. 8 Hz sampled at 10 Hz looks like \(|8 - 10| = 2\) Hz. 30 cycles/cm at 40 samples/cm looks like 10.</li>
+    <li>After sampling, aliasing <strong>can't be undone</strong>. You may not even notice anything is wrong.</li>
+    <li><strong>Fix: low-pass filter before sampling.</strong> Cameras have an optical anti-aliasing filter. Before shrinking an image, blur it first.</li>
+  </ul>
+  <h4>In 2D (images)</h4>
+  <ul>
+    <li>Same rule per axis: \(\Delta T \le \frac{1}{2\mu_{\max}}\), \(\Delta Z \le \frac{1}{2\nu_{\max}}\).</li>
+    <li>Aliasing in images = <strong>moiré</strong> patterns and <strong>jaggies</strong>. A checkerboard with squares smaller than a pixel turns into a wrong, bigger pattern.</li>
+    <li><strong>Shrinking by keeping every k-th pixel</strong>: the new grid can only hold frequencies up to \(\frac{1}{2k}\) cycles per original pixel. Blur (e.g. Gaussian) to remove everything above that first, then subsample. (See Minor Q5(b) in the next chapter.)</li>
   </ul>
 </section>
 
@@ -339,7 +376,11 @@
     <li><b>Shift</b> \(f(t-t_0)\) ↔ \(Fe^{-2\pi i\mu t_0}\)</li>
     <li>\(f*h\) ↔ \(FH\); \(fh\) ↔ \(F*H\)</li>
     <li>\(f(at)\) ↔ \(\frac{1}{|a|}F(\mu/a)\)</li>
-    <li><b>Nyquist</b>: rate \(&gt; 2\mu_{\max}\); else alias</li>
+    <li>Sampled \(\tilde f = f\,s_{\Delta T}\); \(s_{\Delta T}\Leftrightarrow\frac{1}{\Delta T}s_{1/\Delta T}\)</li>
+    <li>\(\tilde F = \frac{1}{\Delta T}\sum F(\mu - n/\Delta T)\): copies every \(1/\Delta T\)</li>
+    <li><b>Nyquist</b>: rate \(&gt; 2\mu_{\max}\); else alias at \(|\mu - k\cdot\text{rate}|\)</li>
+    <li>Rebuild: \(f = \sum f(n\Delta T)\,\text{sinc}((t-n\Delta T)/\Delta T)\); NN = box, linear = tent</li>
+    <li>Blur before sampling / shrinking (anti-aliasing)</li>
     <li><b>DFT</b> \(F[u]=\sum f[x]e^{-2\pi iux/M}\), inverse has \(1/M\)</li>
     <li>DFT periodic, circular conv; FFT \(O(M\log M)\)</li>
     <li>Real f: \(F[-u] = F[u]^*\); shift → phase only</li>

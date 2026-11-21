@@ -84,6 +84,36 @@
   \[ g(x) = \frac{\sum_s (w(s)-\bar w)(f(x+s)-\bar f_x)}{\sqrt{\sum_s (w(s)-\bar w)^2\,\sum_s (f(x+s)-\bar f_x)^2}} \]
 </section>
 
+<section class="slide" data-key="padding">
+  <h3>Padding, separability, filters from filters</h3>
+  <h4>Padding: what is outside the image?</h4>
+  <div class="tbl-wrap"><table class="mono">
+    <tr><th>image</th><td></td><td></td><td>1</td><td>2</td><td>3</td><td></td><td></td></tr>
+    <tr><th>zero</th><td>0</td><td>0</td><td>1</td><td>2</td><td>3</td><td>0</td><td>0</td></tr>
+    <tr><th>replicate</th><td>1</td><td>1</td><td>1</td><td>2</td><td>3</td><td>3</td><td>3</td></tr>
+    <tr><th>mirror</th><td>3</td><td>2</td><td>1</td><td>2</td><td>3</td><td>2</td><td>1</td></tr>
+    <tr><th>periodic</th><td>2</td><td>3</td><td>1</td><td>2</td><td>3</td><td>1</td><td>2</td></tr>
+  </table></div>
+  <p>Zero padding darkens the borders after blurring. Replicate or mirror avoid that. Kernel origin = centre, \((\lfloor m/2\rfloor, \lfloor n/2\rfloor)\).</p>
+  <h4>Associativity and separability</h4>
+  <ul>
+    <li>\(w_1 * (w_2 * f) = (w_1 * w_2) * f\): many filters in a row = one filter.</li>
+    <li><strong>Separable</strong> kernel: \(w(s,t) = w_1(s)\,w_2(t)\), i.e. the kernel is a column × a row (rank 1: every row is a multiple of one row). Then filter with the column, then the row: cost \(O(m+n)\) per pixel instead of \(O(mn)\).</li>
+  </ul>
+  <div class="tbl-wrap"><table>
+    <tr><th>Kernel</th><th>Separable?</th></tr>
+    <tr><td>\(\begin{bmatrix}2&2&2\\2&2&2\\2&2&2\end{bmatrix}\)</td><td>yes: \([1,1,1]^T \times [2,2,2]\)</td></tr>
+    <tr><td>\(\begin{bmatrix}1&2&1\\1&2&1\\2&3&2\end{bmatrix}\)</td><td>no: last row \([2,3,2]\) is not a multiple of \([1,2,1]\)</td></tr>
+    <tr><td>\(\begin{bmatrix}1&-2&1\\1&-2&1\\-2&4&-2\end{bmatrix}\)</td><td>yes: \([1,1,-2]^T \times [1,-2,1]\)</td></tr>
+  </table></div>
+  <h4>New filters from a low-pass filter</h4>
+  <ul>
+    <li><strong>High-pass</strong> = impulse − low-pass: \(hp = \delta - lp\). (Original minus blurred keeps the edges. Example: the −Laplacian kernel.)</li>
+    <li><strong>Band-pass</strong> = \(lp_2 - lp_1\) (a wide-band blur minus a narrow-band blur: keeps the middle frequencies).</li>
+    <li><strong>Band-reject</strong> = \(\delta - bp = lp_1 + hp_2\).</li>
+  </ul>
+</section>
+
 <section class="slide practice">
   <h3>Exam-style practice</h3>
   <div class="q">
@@ -109,6 +139,9 @@
 <section class="slide sheet"><div class="card">
   <h3>Cheat sheet · spatial filters</h3>
   <ul>
+    <li>Padding: zero, replicate, mirror, periodic</li>
+    <li>Separable ⇔ rank 1 (rows ∝); cost \(O(m+n)\) vs \(O(mn)\)</li>
+    <li>\(hp = \delta - lp\); \(bp = lp_2 - lp_1\); \(br = \delta - bp\)</li>
     <li><b>Corr</b> \(\sum w(s)f(x+s)\); <b>conv</b> \(\sum w(s)f(x-s)\)</li>
     <li>Conv with impulse = kernel; corr = flipped kernel</li>
     <li><b>Separable</b>: \(O(MN(m+n))\) instead of \(O(MNmn)\)</li>

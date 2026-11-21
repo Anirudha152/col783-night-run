@@ -18,6 +18,25 @@
   <p>Storage for an M × N image with \(k\) bits per pixel: \(M N k\) bits. A colour image has 3 channels, so \(3MNk\).</p>
 </section>
 
+<section class="slide" data-key="resolution">
+  <h3>Resolution and the eye</h3>
+  <h4>Resolution means detail, not pixel count</h4>
+  <ul>
+    <li><strong>Spatial resolution</strong> = smallest detail you can tell apart. Give it in physical units: pixels per inch (dpi). A good scan is 300–600 dpi.</li>
+    <li>The pixel array alone does not know its physical size. A 50 × 50 px tumour: how many mm? You need the dpi from the metadata.</li>
+    <li><strong>Intensity resolution</strong>: \(L = 2^k\) levels. Too few levels → <strong>false contours</strong> (fake bands in smooth areas).</li>
+    <li><strong>Dynamic range</strong> = max measurable / min detectable intensity. <strong>Contrast</strong> = max − min intensity in the image.</li>
+    <li><strong>Image formation</strong>: \(f(x,y) = i(x,y)\,r(x,y)\), illumination × reflectance.</li>
+  </ul>
+  <h4>The eye</h4>
+  <ul>
+    <li>Cones: 3 types (long, medium, short wavelength), colour, bright light. Rods: 1 type, no colour, dim light.</li>
+    <li>Perceived brightness ≈ <strong>log</strong> of light intensity. The eye adapts over a range of about \(10^{10}\), but only sees a small range at once.</li>
+    <li><strong>Weber ratio</strong> \(\Delta I / I\): the smallest change you can notice, relative to the background.</li>
+    <li><strong>Mach bands</strong> (we see over/undershoot at the edges of flat steps) and <strong>simultaneous contrast</strong> (the same gray looks darker on a bright background). So perceived brightness is not just intensity.</li>
+  </ul>
+</section>
+
 <section class="slide">
   <h3>Interpolation: finding values between pixels</h3>
   <p>When we zoom or rotate, we need \(f\) at points that are not on the grid. Guessing those values is <strong>interpolation</strong>.</p>
@@ -102,6 +121,26 @@
     <li><strong>Reverse</strong> (good): for every output pixel, find where it came from, \((x, y) = T^{-1}(x', y')\), and interpolate \(f\) there.</li>
   </ul>
   <p>Most transforms used are <strong>affine</strong>: \([x'\ y'\ 1]^T = A\,[x\ y\ 1]^T\) with a 3 × 3 matrix whose last row is \([0\ 0\ 1]\). This covers scale, rotate, shear, translate.</p>
+</section>
+
+<section class="slide" data-key="homog">
+  <h3>Homogeneous coordinates and registration</h3>
+  <p>Write the point \((x, y)\) as \([x\ y\ 1]^T\). Then even translation is a matrix:</p>
+  \[ \begin{bmatrix}x'\\y'\\1\end{bmatrix} = \begin{bmatrix}1&0&t_x\\0&1&t_y\\0&0&1\end{bmatrix}\begin{bmatrix}x\\y\\1\end{bmatrix} \]
+  <ul>
+    <li>Do transform A then B = multiply matrices \(BA\). Undo = matrix inverse.</li>
+  </ul>
+  <table>
+    <tr><th>Type</th><th>Matrix</th><th>Keeps</th><th>Unknowns</th></tr>
+    <tr><td>Similarity</td><td>\(\begin{bmatrix}a&-b&t_x\\b&a&t_y\\0&0&1\end{bmatrix}\)</td><td>angles, parallel lines, straight lines</td><td>4</td></tr>
+    <tr><td>Affine</td><td>\(\begin{bmatrix}a&b&t_x\\c&d&t_y\\0&0&1\end{bmatrix}\)</td><td>parallel lines, straight lines</td><td>6</td></tr>
+    <tr><td>Projective (homography)</td><td>\(\begin{bmatrix}a&b&c\\d&e&f\\g&h&i\end{bmatrix}\), divide by \(gx+hy+i\)</td><td>straight lines only</td><td>8</td></tr>
+  </table>
+  <p>Two photos are related by a homography if the scene is flat, or the camera only rotates.</p>
+  <h4>Registration: line up two images</h4>
+  <p>Find matching point pairs \((x_i, y_i) \to (x'_i, y'_i)\) (by hand, markers, or SIFT). Each pair gives 2 equations. Affine has 6 unknowns → need <strong>3 pairs</strong>:</p>
+  \[ \begin{bmatrix}x_1&y_1&0&0&1&0\\0&0&x_1&y_1&0&1\\ \vdots\end{bmatrix}\begin{bmatrix}a\\b\\c\\d\\t_x\\t_y\end{bmatrix} = \begin{bmatrix}x'_1\\y'_1\\ \vdots\end{bmatrix} \]
+  <p>More pairs than needed → solve by least squares.</p>
 </section>
 
 <section class="slide practice">

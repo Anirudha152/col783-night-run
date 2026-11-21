@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=2">
 <script>try{var t=JSON.parse(localStorage.getItem('col783:theme'));if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
 </head>
 <body>
@@ -46,6 +46,25 @@
     <figcaption>Teal: the real signal. Orange dots: samples, each rounded to the nearest of 4 levels (dashed lines).</figcaption>
   </figure>
   <p>Storage for an M × N image with \(k\) bits per pixel: \(M N k\) bits. A colour image has 3 channels, so \(3MNk\).</p>
+</section>
+
+<section class="slide" data-key="resolution">
+  <h3>Resolution and the eye</h3>
+  <h4>Resolution means detail, not pixel count</h4>
+  <ul>
+    <li><strong>Spatial resolution</strong> = smallest detail you can tell apart. Give it in physical units: pixels per inch (dpi). A good scan is 300–600 dpi.</li>
+    <li>The pixel array alone does not know its physical size. A 50 × 50 px tumour: how many mm? You need the dpi from the metadata.</li>
+    <li><strong>Intensity resolution</strong>: \(L = 2^k\) levels. Too few levels → <strong>false contours</strong> (fake bands in smooth areas).</li>
+    <li><strong>Dynamic range</strong> = max measurable / min detectable intensity. <strong>Contrast</strong> = max − min intensity in the image.</li>
+    <li><strong>Image formation</strong>: \(f(x,y) = i(x,y)\,r(x,y)\), illumination × reflectance.</li>
+  </ul>
+  <h4>The eye</h4>
+  <ul>
+    <li>Cones: 3 types (long, medium, short wavelength), colour, bright light. Rods: 1 type, no colour, dim light.</li>
+    <li>Perceived brightness ≈ <strong>log</strong> of light intensity. The eye adapts over a range of about \(10^{10}\), but only sees a small range at once.</li>
+    <li><strong>Weber ratio</strong> \(\Delta I / I\): the smallest change you can notice, relative to the background.</li>
+    <li><strong>Mach bands</strong> (we see over/undershoot at the edges of flat steps) and <strong>simultaneous contrast</strong> (the same gray looks darker on a bright background). So perceived brightness is not just intensity.</li>
+  </ul>
 </section>
 
 <section class="slide">
@@ -132,6 +151,26 @@
     <li><strong>Reverse</strong> (good): for every output pixel, find where it came from, \((x, y) = T^{-1}(x', y')\), and interpolate \(f\) there.</li>
   </ul>
   <p>Most transforms used are <strong>affine</strong>: \([x'\ y'\ 1]^T = A\,[x\ y\ 1]^T\) with a 3 × 3 matrix whose last row is \([0\ 0\ 1]\). This covers scale, rotate, shear, translate.</p>
+</section>
+
+<section class="slide" data-key="homog">
+  <h3>Homogeneous coordinates and registration</h3>
+  <p>Write the point \((x, y)\) as \([x\ y\ 1]^T\). Then even translation is a matrix:</p>
+  \[ \begin{bmatrix}x'\\y'\\1\end{bmatrix} = \begin{bmatrix}1&0&t_x\\0&1&t_y\\0&0&1\end{bmatrix}\begin{bmatrix}x\\y\\1\end{bmatrix} \]
+  <ul>
+    <li>Do transform A then B = multiply matrices \(BA\). Undo = matrix inverse.</li>
+  </ul>
+  <table>
+    <tr><th>Type</th><th>Matrix</th><th>Keeps</th><th>Unknowns</th></tr>
+    <tr><td>Similarity</td><td>\(\begin{bmatrix}a&-b&t_x\\b&a&t_y\\0&0&1\end{bmatrix}\)</td><td>angles, parallel lines, straight lines</td><td>4</td></tr>
+    <tr><td>Affine</td><td>\(\begin{bmatrix}a&b&t_x\\c&d&t_y\\0&0&1\end{bmatrix}\)</td><td>parallel lines, straight lines</td><td>6</td></tr>
+    <tr><td>Projective (homography)</td><td>\(\begin{bmatrix}a&b&c\\d&e&f\\g&h&i\end{bmatrix}\), divide by \(gx+hy+i\)</td><td>straight lines only</td><td>8</td></tr>
+  </table>
+  <p>Two photos are related by a homography if the scene is flat, or the camera only rotates.</p>
+  <h4>Registration: line up two images</h4>
+  <p>Find matching point pairs \((x_i, y_i) \to (x'_i, y'_i)\) (by hand, markers, or SIFT). Each pair gives 2 equations. Affine has 6 unknowns → need <strong>3 pairs</strong>:</p>
+  \[ \begin{bmatrix}x_1&y_1&0&0&1&0\\0&0&x_1&y_1&0&1\\ \vdots\end{bmatrix}\begin{bmatrix}a\\b\\c\\d\\t_x\\t_y\end{bmatrix} = \begin{bmatrix}x'_1\\y'_1\\ \vdots\end{bmatrix} \]
+  <p>More pairs than needed → solve by least squares.</p>
 </section>
 
 <section class="slide practice">
@@ -235,6 +274,27 @@
   <p><strong>CLAHE</strong> = <strong>C</strong>ontrast <strong>L</strong>imited AHE. Clip the histogram at a max height. Spread the clipped pixels evenly over all bins. This caps the slope, so it caps the contrast boost.</p>
 </section>
 
+<section class="slide" data-key="matching">
+  <h3>Histogram matching</h3>
+  <p>Equalization makes the histogram flat. <strong>Matching</strong> makes it look like any target histogram \(p_z\) you choose.</p>
+  <ol>
+    <li>Equalize the input: \(s = T_r(r)\) (its CDF).</li>
+    <li>Equalize the target too: \(s = T_z(z)\) (target CDF).</li>
+    <li>Both give "flat" values \(s\), so connect them: \(z = T_z^{-1}(T_r(r))\).</li>
+  </ol>
+  <p>In practice: for each input level \(r\), pick the \(z\) whose target CDF is <strong>closest</strong> to the input CDF at \(r\). (Store \(T_z\) as a table and search it.)</p>
+  <h4>Worked example (4 levels)</h4>
+  <div class="tbl-wrap"><table class="mono">
+    <tr><th>level</th><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+    <tr><th>input p_r</th><td>0.4</td><td>0.3</td><td>0.2</td><td>0.1</td></tr>
+    <tr><th>input CDF</th><td>0.4</td><td>0.7</td><td>0.9</td><td>1.0</td></tr>
+    <tr><th>target p_z</th><td>0.1</td><td>0.2</td><td>0.3</td><td>0.4</td></tr>
+    <tr><th>target CDF</th><td>0.1</td><td>0.3</td><td>0.6</td><td>1.0</td></tr>
+    <tr><th>r → z</th><td>1</td><td>2</td><td>3</td><td>3</td></tr>
+  </table></div>
+  <p>Input CDF 0.4 is closest to target CDF 0.3, so 0 → 1. Then 0.7 → 0.6 (level 2), 0.9 → 1.0 (level 3), 1.0 → 1.0 (level 3). The new histogram is [0, 0.4, 0.3, 0.3]: close to the target, not exact (digital levels can't be split).</p>
+</section>
+
 <section class="slide practice">
   <h3>Exam-style practice</h3>
   <div class="q">
@@ -255,6 +315,7 @@
 <section class="slide sheet"><div class="card">
   <h3>Cheat sheet · intensity</h3>
   <ul>
+    <li><b>Matching</b> \(z = T_z^{-1}(T_r(r))\): pick z with target CDF closest to input CDF</li>
     <li><b>Negative</b>: \(L-1-r\)</li>
     <li><b>Contrast</b>: \(c(r-k)+k\)</li>
     <li><b>Gamma</b>: \(r^\gamma\); \(\gamma&lt;1\) brightens</li>
@@ -1018,6 +1079,36 @@ output any number in [low, high)</pre>
   \[ g(x) = \frac{\sum_s (w(s)-\bar w)(f(x+s)-\bar f_x)}{\sqrt{\sum_s (w(s)-\bar w)^2\,\sum_s (f(x+s)-\bar f_x)^2}} \]
 </section>
 
+<section class="slide" data-key="padding">
+  <h3>Padding, separability, filters from filters</h3>
+  <h4>Padding: what is outside the image?</h4>
+  <div class="tbl-wrap"><table class="mono">
+    <tr><th>image</th><td></td><td></td><td>1</td><td>2</td><td>3</td><td></td><td></td></tr>
+    <tr><th>zero</th><td>0</td><td>0</td><td>1</td><td>2</td><td>3</td><td>0</td><td>0</td></tr>
+    <tr><th>replicate</th><td>1</td><td>1</td><td>1</td><td>2</td><td>3</td><td>3</td><td>3</td></tr>
+    <tr><th>mirror</th><td>3</td><td>2</td><td>1</td><td>2</td><td>3</td><td>2</td><td>1</td></tr>
+    <tr><th>periodic</th><td>2</td><td>3</td><td>1</td><td>2</td><td>3</td><td>1</td><td>2</td></tr>
+  </table></div>
+  <p>Zero padding darkens the borders after blurring. Replicate or mirror avoid that. Kernel origin = centre, \((\lfloor m/2\rfloor, \lfloor n/2\rfloor)\).</p>
+  <h4>Associativity and separability</h4>
+  <ul>
+    <li>\(w_1 * (w_2 * f) = (w_1 * w_2) * f\): many filters in a row = one filter.</li>
+    <li><strong>Separable</strong> kernel: \(w(s,t) = w_1(s)\,w_2(t)\), i.e. the kernel is a column × a row (rank 1: every row is a multiple of one row). Then filter with the column, then the row: cost \(O(m+n)\) per pixel instead of \(O(mn)\).</li>
+  </ul>
+  <div class="tbl-wrap"><table>
+    <tr><th>Kernel</th><th>Separable?</th></tr>
+    <tr><td>\(\begin{bmatrix}2&2&2\\2&2&2\\2&2&2\end{bmatrix}\)</td><td>yes: \([1,1,1]^T \times [2,2,2]\)</td></tr>
+    <tr><td>\(\begin{bmatrix}1&2&1\\1&2&1\\2&3&2\end{bmatrix}\)</td><td>no: last row \([2,3,2]\) is not a multiple of \([1,2,1]\)</td></tr>
+    <tr><td>\(\begin{bmatrix}1&-2&1\\1&-2&1\\-2&4&-2\end{bmatrix}\)</td><td>yes: \([1,1,-2]^T \times [1,-2,1]\)</td></tr>
+  </table></div>
+  <h4>New filters from a low-pass filter</h4>
+  <ul>
+    <li><strong>High-pass</strong> = impulse − low-pass: \(hp = \delta - lp\). (Original minus blurred keeps the edges. Example: the −Laplacian kernel.)</li>
+    <li><strong>Band-pass</strong> = \(lp_2 - lp_1\) (a wide-band blur minus a narrow-band blur: keeps the middle frequencies).</li>
+    <li><strong>Band-reject</strong> = \(\delta - bp = lp_1 + hp_2\).</li>
+  </ul>
+</section>
+
 <section class="slide practice">
   <h3>Exam-style practice</h3>
   <div class="q">
@@ -1043,6 +1134,9 @@ output any number in [low, high)</pre>
 <section class="slide sheet"><div class="card">
   <h3>Cheat sheet · spatial filters</h3>
   <ul>
+    <li>Padding: zero, replicate, mirror, periodic</li>
+    <li>Separable ⇔ rank 1 (rows ∝); cost \(O(m+n)\) vs \(O(mn)\)</li>
+    <li>\(hp = \delta - lp\); \(bp = lp_2 - lp_1\); \(br = \delta - bp\)</li>
     <li><b>Corr</b> \(\sum w(s)f(x+s)\); <b>conv</b> \(\sum w(s)f(x-s)\)</li>
     <li>Conv with impulse = kernel; corr = flipped kernel</li>
     <li><b>Separable</b>: \(O(MN(m+n))\) instead of \(O(MNmn)\)</li>
@@ -1584,6 +1678,13 @@ circles = peaks of A</pre>
     <li><strong>Colour segmentation</strong>: threshold the distance to a target colour in RGB, or threshold hue and saturation.</li>
     <li><strong>Colour edges</strong>: gradients of each channel can cancel; use a combined vector gradient.</li>
   </ul>
+  <h4>Pseudocolour (false colour)</h4>
+  <p>People can tell apart thousands of colours, but only a few dozen grays. So we paint gray or multi-band images in colour just to <em>see</em> them better.</p>
+  <ul>
+    <li><strong>Intensity slicing</strong>: give each intensity range its own colour (e.g. highlight saturated pixels in red).</li>
+    <li><strong>Gray → colour map</strong>: three functions \(R(f), G(f), B(f)\) (like a heat map).</li>
+    <li><strong>Multispectral</strong>: put a different band in each channel, e.g. (infrared, green, blue) shown as (R, G, B). Plants glow red because they reflect infrared strongly.</li>
+  </ul>
   <div class="note"><b>Accessibility.</b> Colour-blind viewers may not see red vs green. Do not rely on colour alone to show information.</div>
 </section>
 
@@ -2034,17 +2135,54 @@ circles = peaks of A</pre>
 </section>
 
 <section class="slide">
-  <h3>Sampling and aliasing</h3>
-  <p>Sampling every \(\Delta T\) = multiplying by an impulse train. In frequency, that makes <strong>copies</strong> of \(F\) every \(1/\Delta T\):</p>
-  \[ \tilde F(\mu) = \frac{1}{\Delta T}\sum_n F\Big(\mu - \frac{n}{\Delta T}\Big) \]
+  <h3>Sampling, step by step</h3>
+  <p><strong>Step 1: write the samples as impulses.</strong> (If we wrote "f at sample points, 0 elsewhere", its Fourier transform would be 0. Useless.)</p>
+  \[ \tilde f(t) = \sum_n f(n\Delta T)\,\delta(t - n\Delta T) = f(t)\cdot s_{\Delta T}(t), \qquad s_{\Delta T}(t) = \sum_n \delta(t - n\Delta T) \]
+  <p>\(s_{\Delta T}\) is an <strong>impulse train</strong>: a spike every \(\Delta T\).</p>
+  <p><strong>Step 2: the FT of an impulse train is an impulse train.</strong> Spikes every \(\Delta T\) in space ↔ spikes every \(1/\Delta T\) in frequency:</p>
+  \[ s_{\Delta T} \;\Longleftrightarrow\; \tfrac{1}{\Delta T}\,s_{1/\Delta T} \]
+  <p><strong>Step 3: multiply in space = convolve in frequency.</strong> Convolving \(F\) with spikes pastes a copy of \(F\) at every spike:</p>
+  \[ \tilde F(\mu) = F * \tfrac{1}{\Delta T}s_{1/\Delta T} = \frac{1}{\Delta T}\sum_n F\Big(\mu - \frac{n}{\Delta T}\Big) \]
   <figure>
     <svg class="plot" data-plot='{"w":520,"h":120,"x":[-6,6],"y":[0,1.2],"xl":"μ","curves":[{"f":"max(0,1-abs(x)/1.4)","c":1},{"f":"max(0,1-abs(x-3)/1.4)","c":2,"thin":true},{"f":"max(0,1-abs(x+3)/1.4)","c":2,"thin":true}],"text":[{"x":-0.6,"y":1.1,"t":"copies separate: OK","cl":"sm"}]}'></svg>
     <svg class="plot" data-plot='{"w":520,"h":120,"x":[-6,6],"y":[0,1.2],"xl":"μ","curves":[{"f":"max(0,1-abs(x)/1.4)","c":1},{"f":"max(0,1-abs(x-2)/1.4)","c":3,"thin":true},{"f":"max(0,1-abs(x+2)/1.4)","c":3,"thin":true}],"text":[{"x":-0.8,"y":1.1,"t":"copies overlap: aliasing","cl":"sm lbl3"}]}'></svg>
   </figure>
+  <h4>The sampling theorem (Nyquist–Shannon)</h4>
   <ul>
-    <li><strong>Nyquist</strong>: if \(f\) has no frequency above \(\mu_{\max}\), sample faster than \(2\mu_{\max}\). Then copies don't overlap and \(f\) can be rebuilt exactly (ideal low-pass = sinc interpolation).</li>
-    <li>Too slow → copies overlap → high frequencies pretend to be low ones: <strong>aliasing</strong> (moiré, jaggies).</li>
-    <li>Fix: <strong>low-pass filter before sampling</strong> (or before shrinking an image).</li>
+    <li>Say \(F(\mu) = 0\) outside \([-\mu_{\max}, \mu_{\max}]\) (<strong>band-limited</strong>).</li>
+    <li>The copies sit \(1/\Delta T\) apart. They don't overlap if \(\dfrac{1}{\Delta T} &gt; 2\mu_{\max}\). (\(2\mu_{\max}\) is the <strong>Nyquist rate</strong>.)</li>
+    <li>Then \(f\) can be rebuilt <strong>exactly</strong> from its samples.</li>
+    <li>Flip it around: sampling at rate \(1/\Delta T\) can only capture frequencies up to \(\dfrac{1}{2\Delta T}\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Getting the signal back, and aliasing</h3>
+  <h4>Rebuilding f: keep only the middle copy</h4>
+  <p>Multiply by a box (ideal low-pass): \(F = H\tilde F\), with \(H(\mu) = \Delta T\) for \(|\mu| \le \frac{1}{2\Delta T}\), 0 otherwise.</p>
+  <p>In space, the box is a sinc, and convolving a sinc with impulses places a sinc at every sample:</p>
+  \[ f(t) = \sum_n f(n\Delta T)\,\text{sinc}\Big(\frac{t - n\Delta T}{\Delta T}\Big) \qquad \text{(sinc interpolation)} \]
+  <ul>
+    <li><strong>Nearest neighbour</strong> = the same formula with \(h\) = box of width \(\Delta T\).</li>
+    <li><strong>Linear interpolation</strong> = \(h\) = tent of width \(2\Delta T\) (box * box).</li>
+    <li>These are worse low-pass filters than the ideal box in frequency, so a bit of the other copies leaks in (blocky or blurry results).</li>
+  </ul>
+  <h4>Aliasing: sampling too slowly</h4>
+  <p>If \(1/\Delta T &lt; 2\mu_{\max}\), the copies overlap. A high frequency looks exactly like a low one: an <strong>alias</strong> (false identity).</p>
+  <figure>
+    <svg class="plot" data-plot='{"w": 520, "h": 150, "x": [0, 10], "y": [-1.3, 1.3], "xl": "n (samples)", "curves": [{"f": "cos(2*PI*0.8*x)", "c": 2, "thin": true, "n": 900, "t": "real: 0.8 cycles/sample", "tx": 0.3, "ty": 1.15, "tdy": 0}, {"f": "cos(2*PI*0.2*x)", "c": 3, "dash": true, "t": "what the samples show: 0.2", "tx": 5.6, "ty": -1.2, "tdy": 0}], "stems": [{"c": 1, "pts": [[0, 1.0], [1, 0.309], [2, -0.809], [3, -0.809], [4, 0.309], [5, 1.0], [6, 0.309], [7, -0.809], [8, -0.809], [9, 0.309], [10, 1.0]]}]}'></svg>
+    <figcaption>Orange dots: samples of the teal wave (0.8 cycles per sample). They fit the rose wave (0.2 cycles per sample) perfectly. From the samples alone you can't tell which one it was.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Where the alias lands</strong>: a frequency \(\mu\) shows up at \(|\mu - k\cdot\text{rate}|\), using the multiple of the rate that brings it into \([0, \text{rate}/2]\). E.g. 8 Hz sampled at 10 Hz looks like \(|8 - 10| = 2\) Hz. 30 cycles/cm at 40 samples/cm looks like 10.</li>
+    <li>After sampling, aliasing <strong>can't be undone</strong>. You may not even notice anything is wrong.</li>
+    <li><strong>Fix: low-pass filter before sampling.</strong> Cameras have an optical anti-aliasing filter. Before shrinking an image, blur it first.</li>
+  </ul>
+  <h4>In 2D (images)</h4>
+  <ul>
+    <li>Same rule per axis: \(\Delta T \le \frac{1}{2\mu_{\max}}\), \(\Delta Z \le \frac{1}{2\nu_{\max}}\).</li>
+    <li>Aliasing in images = <strong>moiré</strong> patterns and <strong>jaggies</strong>. A checkerboard with squares smaller than a pixel turns into a wrong, bigger pattern.</li>
+    <li><strong>Shrinking by keeping every k-th pixel</strong>: the new grid can only hold frequencies up to \(\frac{1}{2k}\) cycles per original pixel. Blur (e.g. Gaussian) to remove everything above that first, then subsample. (See Minor Q5(b) in the next chapter.)</li>
   </ul>
 </section>
 
@@ -2292,7 +2430,11 @@ circles = peaks of A</pre>
     <li><b>Shift</b> \(f(t-t_0)\) ↔ \(Fe^{-2\pi i\mu t_0}\)</li>
     <li>\(f*h\) ↔ \(FH\); \(fh\) ↔ \(F*H\)</li>
     <li>\(f(at)\) ↔ \(\frac{1}{|a|}F(\mu/a)\)</li>
-    <li><b>Nyquist</b>: rate \(&gt; 2\mu_{\max}\); else alias</li>
+    <li>Sampled \(\tilde f = f\,s_{\Delta T}\); \(s_{\Delta T}\Leftrightarrow\frac{1}{\Delta T}s_{1/\Delta T}\)</li>
+    <li>\(\tilde F = \frac{1}{\Delta T}\sum F(\mu - n/\Delta T)\): copies every \(1/\Delta T\)</li>
+    <li><b>Nyquist</b>: rate \(&gt; 2\mu_{\max}\); else alias at \(|\mu - k\cdot\text{rate}|\)</li>
+    <li>Rebuild: \(f = \sum f(n\Delta T)\,\text{sinc}((t-n\Delta T)/\Delta T)\); NN = box, linear = tent</li>
+    <li>Blur before sampling / shrinking (anti-aliasing)</li>
     <li><b>DFT</b> \(F[u]=\sum f[x]e^{-2\pi iux/M}\), inverse has \(1/M\)</li>
     <li>DFT periodic, circular conv; FFT \(O(M\log M)\)</li>
     <li>Real f: \(F[-u] = F[u]^*\); shift → phase only</li>
@@ -2345,6 +2487,7 @@ circles = peaks of A</pre>
   <h3>High-pass, emphasis, homomorphic</h3>
   <ul>
     <li><strong>High-pass</strong>: \(H_{HP} = 1 - H_{LP}\). Spatially \(h_{HP} = \delta - h_{LP}\). Keeps edges, kills flat areas (the mean becomes 0).</li>
+    <li><strong>Band-reject</strong> \(H_{BR} = H_{LP,1} + H_{HP,2}\) (keep low and high, drop a middle ring). <strong>Band-pass</strong> \(H_{BP} = 1 - H_{BR}\).</li>
     <li><strong>Unsharp masking</strong> in frequency: \(G = (1 + k H_{HP})F\). General high-frequency emphasis: \(H = k_1 + k_2 H_{HP}\).</li>
     <li><strong>Laplacian</strong> in frequency: \(H = -4\pi^2(u^2+v^2)\).</li>
   </ul>
@@ -3127,6 +3270,20 @@ circles = peaks of A</pre>
   </ul>
 </section>
 
+<section class="slide" data-key="notch">
+  <h3>Periodic noise and optimum notch filtering</h3>
+  <p>Periodic noise (stripes, hum) = a few bright spikes in the spectrum, at \(\pm(u_k, v_k)\).</p>
+  <ul>
+    <li><strong>Notch reject</strong>: \(H_{NR}(u,v) = \prod_k H_{HP}(u-u_k, v-v_k)\,H_{HP}(u+u_k, v+v_k)\). A small high-pass "hole" at each spike and its twin.</li>
+    <li><strong>Notch pass</strong> \(H_{NP} = 1 - H_{NR}\) keeps only the spikes, so it gives you the noise pattern \(\eta\) itself.</li>
+  </ul>
+  <h4>When the noise strength changes across the image</h4>
+  <p>Model: \(g = f + w(x,y)\,\eta\), where \(\eta\) comes from the notch pass and \(w\) varies slowly. In each small window \(S_{xy}\), find one number \(w\) and subtract: \(\hat f = g - w\eta\).</p>
+  <p>Choose \(w\) to make \(\hat f\) as smooth as possible (smallest variance in the window):</p>
+  \[ \operatorname{var}(\hat f) = \operatorname{var}(g) + w^2\operatorname{var}(\eta) - 2w\operatorname{cov}(g,\eta) \;\Rightarrow\; \hat w = \frac{\operatorname{cov}(g,\eta)}{\operatorname{var}(\eta)} \]
+  <p>(Set the derivative in \(w\) to zero.) This is the same as making \(\hat f\) uncorrelated with \(\eta\) in the window.</p>
+</section>
+
 <section class="slide">
   <h3>Inverse filtering and why it explodes</h3>
   \[ \hat F = \frac{G}{H} = F + \frac{N}{H} \]
@@ -3203,6 +3360,8 @@ circles = peaks of A</pre>
 <section class="slide sheet"><div class="card">
   <h3>Cheat sheet · restoration</h3>
   <ul>
+    <li>Notch: \(H_{NR} = \prod H_{HP}(\cdot\mp(u_k,v_k))\); \(H_{NP} = 1-H_{NR}\) gives η</li>
+    <li>Optimum notch: \(\hat f = g - w\eta\), \(w = \text{cov}(g,\eta)/\text{var}(\eta)\) per window</li>
     <li>\(g = h*f+\eta\), \(G = HF+N\); h = PSF</li>
     <li>Gauss → mean; S&amp;P → <b>median</b>; both → α-trimmed</li>
     <li>Mean of mn: var ÷ mn; NLM: compare patches</li>
@@ -3318,6 +3477,6 @@ circles = peaks of A</pre>
     </div>
   </main>
 </div>
-<script defer src="assets/app.js"></script>
+<script defer src="assets/app.js?v=2"></script>
 </body>
 </html>
