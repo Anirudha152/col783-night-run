@@ -150,9 +150,11 @@ button { font: inherit; color: inherit; }
 .t-prog { font: 11.5px var(--mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .t-prog.full { color: var(--teal); }
 .t-target { font-size: 10.5px; font-weight: 700; color: var(--safe); border: 1px solid var(--safe); border-radius: 4px; padding: 0 4px; }
-.t-move { display: none; gap: 2px; }
-.toc li:hover .t-move, .toc li:focus-within .t-move { display: flex; }
-.toc li:hover .t-prog, .toc li:focus-within .t-prog { display: none; }
+.t-slot { display: grid; width: 48px; justify-items: end; align-items: center; }
+.t-slot > * { grid-area: 1 / 1; }
+.t-move { display: flex; gap: 2px; visibility: hidden; }
+.toc li:hover .t-move, .toc li:focus-within .t-move { visibility: visible; }
+.toc li:hover .t-prog, .toc li:focus-within .t-prog { visibility: hidden; }
 .t-move button { width: 22px; height: 22px; display: grid; place-items: center; background: var(--bg); border: 1px solid var(--line-2); border-radius: 5px; cursor: pointer; color: var(--ink-2); padding: 0; }
 .t-move button:hover { color: var(--ink); border-color: var(--ink-3); }
 .t-move svg { width: 12px; height: 12px; }
@@ -324,7 +326,7 @@ section.sheet.done .tick { background: var(--paper-accent); border-color: var(--
   .mob-bar .m-title { font-size: 14px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
   section.slide > h3 { font-size: 23px; }
   .card { padding: 22px 18px; transform: none; }
-  .t-move { display: flex; }
-  .toc li .t-prog { display: none; }
+  .t-move { visibility: visible; }
+  .toc li .t-prog { visibility: hidden; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

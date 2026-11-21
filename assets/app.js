@@ -236,8 +236,8 @@
         <span class="t-num">${pad(i + 1)}</span>
         <span class="t-title"><i class="${tag}"></i>${title(id)}</span>
         <span class="t-right">${id === target ? '<span class="t-target">END</span>' : ''}
-          <span class="t-prog${d === sl.length ? ' full' : ''}">${d}/${sl.length}</span>
-          <span class="t-move"><button type="button" data-mv="-1" aria-label="Move up">${ICON.up}</button><button type="button" data-mv="1" aria-label="Move down">${ICON.down}</button></span>
+          <span class="t-slot"><span class="t-prog${d === sl.length ? ' full' : ''}">${d}/${sl.length}</span>
+          <span class="t-move"><button type="button" data-mv="-1" aria-label="Move up">${ICON.up}</button><button type="button" data-mv="1" aria-label="Move down">${ICON.down}</button></span></span>
         </span></li>`;
     }).join('');
     chapters.forEach((c) => { const b = $('[data-pos]', c); if (b) b.textContent = `#${order.indexOf(c.dataset.id) + 1}`; });
