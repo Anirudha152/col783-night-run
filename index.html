@@ -392,20 +392,34 @@
 
 <section class="slide">
   <h3>Connected components and reconstruction</h3>
-  <p><strong>Labelling one component</strong> (this is just BFS):</p>
-  <pre>X ← {x0}                <span class="c">// one seed pixel in A</span>
-repeat: X ← (X ⊕ B) ∩ A  <span class="c">// B = 3×3 box (8-adj) or cross (4-adj)</span>
-until X stops changing</pre>
-  <p><strong>Morphological reconstruction</strong> generalises this. Input: a <em>marker</em> \(F\) and a <em>mask</em> \(G\).</p>
-  \[ D_G(F) = (F \oplus B) \cap G, \qquad R_G(F) = \text{repeat } D_G \text{ until stable} \]
-  <p>Result: every component of \(G\) that touches the marker, kept whole.</p>
+  <p>Reconstruction is just <strong>flood fill</strong>, like the paint bucket in MS Paint.</p>
   <ul>
-    <li><strong>Opening by reconstruction</strong>: \(R_A(A \ominus B)\). Erode to kill small things, then regrow survivors to their exact original shape (no rounding). Example: keep only tall letters using a 51 × 1 SE.</li>
-    <li><strong>Hole filling</strong>: marker = image border, mask = \(A^c\). Reconstruct the background reachable from the border, then complement.</li>
-    <li><strong>Border clearing</strong>: \(A - R_A(\text{border pixels})\).</li>
-    <li><strong>Hysteresis thresholding</strong>: marker = strong threshold, mask = weak threshold.</li>
+    <li><strong>Mask \(G\)</strong>: the area paint is allowed to go.</li>
+    <li><strong>Marker \(F\)</strong>: where the paint starts (a few seed pixels inside \(G\)).</li>
+    <li><strong>One step</strong>: grow the paint by one pixel in every direction (dilate with the 3 × 3 box), then erase whatever spilled outside \(G\) (intersect with \(G\)).</li>
+    <li>Repeat until nothing changes.</li>
   </ul>
-  <div class="note trap"><b>Trap.</b> During reconstruction, dilate with the <em>elementary</em> 3 × 3 SE, not the big SE you eroded with.</div>
+  \[ D_G(F) = (F \oplus B) \cap G, \qquad R_G(F) = \text{repeat } D_G \text{ until stable} \]
+  <div class="grids">
+    <div><div class="grid" data-grid="........../.##....*#./.##...###./......#.../.###....../.#*#...##./.###...##."></div><span class="cap">start: 2 seeds</span></div>
+    <span class="op">→</span>
+    <div><div class="grid" data-grid="........../.##....*+./.##...+++./......#.../.+++....../.+*+...##./.+++...##."></div><span class="cap">step 1</span></div>
+    <span class="op">→</span>
+    <div><div class="grid" data-grid="........../.##....**./.##...***./......+.../.***....../.***...##./.***...##."></div><span class="cap">step 2 = final</span></div>
+  </div>
+  <div class="legend"><span style="--k:var(--cell-on)">in mask, not painted</span><span style="--k:var(--teal)">painted</span><span style="--k:var(--safe)">painted this step</span></div>
+  <p>Step 3 adds nothing, so we stop. The two blobs that had a seed are painted <em>completely</em>, in their exact shape. The two blobs with no seed stay unpainted.</p>
+  <p>Labelling one connected component is the same thing with a single seed pixel and \(G = A\).</p>
+  <h4>Uses: just pick the marker and the mask</h4>
+  <table>
+    <tr><th>Task</th><th>Marker (paint starts)</th><th>Mask (allowed area)</th><th>Answer</th></tr>
+    <tr><td>Opening by reconstruction</td><td>\(A \ominus B\): only big objects survive the erosion</td><td>\(A\)</td><td>the painted part: big objects in their exact original shape (plain opening would round them)</td></tr>
+    <tr><td>Fill holes</td><td>the image border</td><td>\(A^c\) (background)</td><td>the outside background gets painted; holes can't be reached. Answer = everything <em>not</em> painted</td></tr>
+    <tr><td>Remove objects touching the border</td><td>pixels of \(A\) on the border</td><td>\(A\)</td><td>\(A\) minus the painted part</td></tr>
+    <tr><td>Hysteresis threshold</td><td>pixels above the high threshold</td><td>pixels above the low threshold</td><td>the painted part: weak pixels kept only if connected to a strong one</td></tr>
+  </table>
+  <p>Example: to keep only the tall letters in a page of text, erode with a 51 × 1 vertical line (only tall letters survive), then reconstruct inside \(A\) to get those letters back whole.</p>
+  <div class="note trap"><b>Trap.</b> Each step grows by the small 3 × 3 box, not the big SE you eroded with. A big SE could jump across a gap into a different blob that had no seed.</div>
 </section>
 
 <section class="slide">
