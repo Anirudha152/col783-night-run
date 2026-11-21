@@ -1,0 +1,162 @@
+<article class="chapter" data-id="fourier" data-title="Fourier primer (math)" data-tag="math">
+<header class="ch-head">
+  <h1>Fourier primer: the maths you need</h1>
+  <div class="ch-meta"><span>Precursor math</span><span>Deck 07, 08</span></div>
+</header>
+
+<section class="slide">
+  <h3>Complex numbers and Euler's formula</h3>
+  <p>A complex number \(z = a + ib\) is a point in the plane. It has a size \(|z| = \sqrt{a^2+b^2}\) and an angle \(\phi\).</p>
+  \[ e^{i\theta} = \cos\theta + i\sin\theta \]
+  <figure class="row">
+    <div style="flex:0 0 200px">
+      <svg class="fig" viewBox="0 0 200 200">
+        <line x1="10" y1="100" x2="190" y2="100" class="ax"/><line x1="100" y1="190" x2="100" y2="10" class="ax"/>
+        <circle cx="100" cy="100" r="70" class="c0 thin dash" style="fill:none"/>
+        <line x1="100" y1="100" x2="149.5" y2="50.5" class="c1"/>
+        <circle cx="149.5" cy="50.5" r="5" class="f1"/>
+        <line x1="149.5" y1="50.5" x2="149.5" y2="100" class="c2 thin dash"/>
+        <path d="M125 100 A25 25 0 0 0 117.7 82.3" class="c0 thin" style="fill:none"/>
+        <text x="128" y="94" class="sm">θ</text>
+        <text x="156" y="46" class="sm lbl1 b">e<tspan baseline-shift="super" font-size="8">iθ</tspan></text>
+        <text x="122" y="114" class="sm">cos θ</text><text x="153" y="80" class="sm">sin θ</text>
+        <text x="180" y="114" class="sm">Re</text><text x="104" y="18" class="sm">Im</text>
+      </svg>
+    </div>
+    <div>
+      <ul>
+        <li>\(e^{i\theta}\) is a point on the unit circle at angle θ.</li>
+        <li>\(re^{i\phi}\): size \(r\), angle \(\phi\).</li>
+        <li>Multiplying complex numbers: multiply sizes, <strong>add angles</strong>.</li>
+        <li>Conjugate \(z^* = a - ib\). \(|z|^2 = zz^*\).</li>
+      </ul>
+      \[ \cos\theta = \tfrac12(e^{i\theta} + e^{-i\theta}), \quad \sin\theta = \tfrac{1}{2i}(e^{i\theta} - e^{-i\theta}) \]
+    </div>
+  </figure>
+  <p>\(e^{2\pi i \mu t}\) as \(t\) runs = a point spinning around the circle \(\mu\) times per unit time. That is a <strong>complex sinusoid</strong> with frequency \(\mu\).</p>
+</section>
+
+<section class="slide">
+  <h3>Any signal is a sum of sinusoids</h3>
+  <p>A periodic signal with period \(T\) can be written as a <strong>Fourier series</strong>:</p>
+  \[ f(t) = \sum_{n=-\infty}^{\infty} c_n e^{2\pi i n t/T}, \qquad c_n = \frac1T\int_0^T f(t)\,e^{-2\pi i n t/T}\,dt \]
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":150,"x":[0,6.283],"y":[-1.4,1.4],"curves":[{"f":"sin(x)>=0?1:-1","c":0,"thin":true,"dash":true,"n":1200},{"f":"4/PI*sin(x)","c":2,"thin":true},{"f":"4/PI*(sin(x)+sin(3*x)/3+sin(5*x)/5)","c":4,"thin":true},{"f":"4/PI*(sin(x)+sin(3*x)/3+sin(5*x)/5+sin(7*x)/7+sin(9*x)/9+sin(11*x)/11+sin(13*x)/13)","c":1}]}'></svg>
+    <figcaption>Square wave built from 1 (teal), 3 (amber) and 7 (orange) sinusoids. Sharp jumps need many high frequencies.</figcaption>
+  </figure>
+  <ul>
+    <li>\(c_0\) = average value (the "DC" term).</li>
+    <li>Low \(n\): slow, smooth variation. High \(n\): fine detail, sharp edges, noise.</li>
+    <li>Example: \(f = 1 + 3\cos t + \sin 2t\) has \(c_0 = 1\), \(c_{\pm1} = 3/2\), \(c_2 = -i/2\), \(c_{-2} = i/2\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>The Fourier transform</h3>
+  <p>For a non-periodic signal, frequencies become continuous:</p>
+  \[ F(\mu) = \int_{-\infty}^{\infty} f(t)\,e^{-2\pi i\mu t}\,dt, \qquad f(t) = \int_{-\infty}^{\infty} F(\mu)\,e^{2\pi i\mu t}\,d\mu \]
+  <p>\(F(\mu)\) says "how much of frequency \(\mu\)" is in \(f\). It is complex: size = amount, angle = phase (shift).</p>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":220,"h":130,"x":[-2,2],"y":[-0.3,1.2],"xl":"t","curves":[{"f":"abs(x)<0.5?1:0","c":2,"n":1000}]}'></svg><div class="cap">box of width W</div></div>
+    <div><svg class="plot" data-plot='{"w":260,"h":130,"x":[-4,4],"y":[-0.3,1.2],"xl":"μ","curves":[{"f":"x==0?1:sin(PI*x)/(PI*x)","c":1}],"marks":[{"x":1,"t":"1/W"},{"x":-1}]}'></svg><div class="cap">\(F = AW\,\mathrm{sinc}(\mu W)\)</div></div>
+  </figure>
+  <p>\(\mathrm{sinc}(x) = \sin(\pi x)/(\pi x)\). Zeros at \(\mu = k/W\).</p>
+  <div class="note"><b>The big pattern: wide ↔ narrow.</b> A wide box has a narrow sinc, and the reverse. A Gaussian of width σ transforms to a Gaussian of width \(1/(2\pi\sigma)\). An impulse \(\delta\) (zero width) transforms to the constant 1 (infinite width).</div>
+</section>
+
+<section class="slide">
+  <h3>Properties you will actually use</h3>
+  <table>
+    <tr><th>Property</th><th>Space</th><th>Frequency</th></tr>
+    <tr><td>Linearity</td><td>\(af + bg\)</td><td>\(aF + bG\)</td></tr>
+    <tr><td><strong>Shift</strong></td><td>\(f(t - t_0)\)</td><td>\(F(\mu)\,e^{-2\pi i\mu t_0}\) (only phase changes)</td></tr>
+    <tr><td>Modulation</td><td>\(f(t)e^{2\pi i\mu_0 t}\)</td><td>\(F(\mu - \mu_0)\)</td></tr>
+    <tr><td><strong>Convolution</strong></td><td>\(f * h\)</td><td>\(F\,H\)</td></tr>
+    <tr><td>Product</td><td>\(f\,h\)</td><td>\(F * H\)</td></tr>
+    <tr><td>Scaling</td><td>\(f(at)\)</td><td>\(\frac{1}{|a|}F(\mu/a)\)</td></tr>
+    <tr><td>Impulse</td><td>\(\delta(t)\)</td><td>\(1\)</td></tr>
+    <tr><td>Real signal</td><td>\(f\) real</td><td>\(F(-\mu) = F(\mu)^*\), so \(|F|\) is symmetric</td></tr>
+  </table>
+  <p><strong>Convolution theorem</strong> is the key one: blurring (convolution) becomes simple multiplication in frequency. Example: box * box = tent, so tent ↔ \(\mathrm{sinc}^2\).</p>
+</section>
+
+<section class="slide">
+  <h3>Sampling and aliasing</h3>
+  <p>Sampling every \(\Delta T\) = multiplying by an impulse train. In frequency, that makes <strong>copies</strong> of \(F\) every \(1/\Delta T\):</p>
+  \[ \tilde F(\mu) = \frac{1}{\Delta T}\sum_n F\Big(\mu - \frac{n}{\Delta T}\Big) \]
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":120,"x":[-6,6],"y":[0,1.2],"xl":"μ","curves":[{"f":"max(0,1-abs(x)/1.4)","c":1},{"f":"max(0,1-abs(x-3)/1.4)","c":2,"thin":true},{"f":"max(0,1-abs(x+3)/1.4)","c":2,"thin":true}],"text":[{"x":-0.6,"y":1.1,"t":"copies separate: OK","cl":"sm"}]}'></svg>
+    <svg class="plot" data-plot='{"w":520,"h":120,"x":[-6,6],"y":[0,1.2],"xl":"μ","curves":[{"f":"max(0,1-abs(x)/1.4)","c":1},{"f":"max(0,1-abs(x-2)/1.4)","c":3,"thin":true},{"f":"max(0,1-abs(x+2)/1.4)","c":3,"thin":true}],"text":[{"x":-0.8,"y":1.1,"t":"copies overlap: aliasing","cl":"sm lbl3"}]}'></svg>
+  </figure>
+  <ul>
+    <li><strong>Nyquist</strong>: if \(f\) has no frequency above \(\mu_{\max}\), sample faster than \(2\mu_{\max}\). Then copies don't overlap and \(f\) can be rebuilt exactly (ideal low-pass = sinc interpolation).</li>
+    <li>Too slow → copies overlap → high frequencies pretend to be low ones: <strong>aliasing</strong> (moiré, jaggies).</li>
+    <li>Fix: <strong>low-pass filter before sampling</strong> (or before shrinking an image).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>The discrete Fourier transform (DFT)</h3>
+  \[ F[u] = \sum_{x=0}^{M-1} f[x]\,e^{-2\pi i ux/M}, \qquad f[x] = \frac1M\sum_{u=0}^{M-1}F[u]\,e^{2\pi i ux/M} \]
+  <ul>
+    <li>Both \(f\) and \(F\) are treated as <strong>periodic</strong> with period \(M\).</li>
+    <li>Convolution theorem holds for <strong>circular</strong> convolution (wraps around).</li>
+    <li>Naive cost \(O(M^2)\). <strong>FFT</strong> splits into even/odd halves recursively: \(O(M\log M)\).</li>
+  </ul>
+  <h4>Worked: f = [1, 2, 3, 4]</h4>
+  <p>\(e^{-2\pi i/4} = -i\). So \(F[u] = \sum f[x](-i)^{ux}\).</p>
+  <ul>
+    <li>\(F[0] = 1+2+3+4 = 10\) (sum = DC)</li>
+    <li>\(F[1] = 1 + 2(-i) + 3(-1) + 4(i) = -2 + 2i\)</li>
+    <li>\(F[2] = 1 - 2 + 3 - 4 = -2\)</li>
+    <li>\(F[3] = -2 - 2i\) (= conjugate of \(F[1]\), since \(f\) is real)</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>2D DFT and what the spectrum shows</h3>
+  \[ F[u,v] = \sum_{x}\sum_{y} f[x,y]\,e^{-2\pi i(ux/M + vy/N)} \]
+  <ul>
+    <li><strong>Separable</strong>: 1D DFT along rows, then along columns.</li>
+    <li>Each \((u,v)\) is a ripple pattern. Its direction is the direction of \((u,v)\); its frequency is \(\sqrt{u^2+v^2}\).</li>
+    <li>Shift the image → only the <strong>phase</strong> changes, \(|F|\) stays the same. Location info lives in the phase.</li>
+    <li>Rotate the image → the spectrum rotates the same way.</li>
+    <li>Display: centre the spectrum (multiply \(f\) by \((-1)^{x+y}\)), and show \(\log(1 + |F|)\) because values span many orders.</li>
+  </ul>
+  <div class="note"><b>Link to later chapters.</b> The coefficient \(c_n\) is just an inner product \(\langle s_n, f\rangle / \langle s_n, s_n\rangle\) with the basis sinusoid \(s_n\). DCT, Walsh–Hadamard and wavelets are the same idea with different basis functions.</div>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">DFT of \(f = [1, 0, 0, 0]\)? Of \(f = [0, 1, 0, 0]\)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Impulse at 0: \(F = [1,1,1,1]\). Shifted by 1: multiply by \(e^{-2\pi iu/4} = (-i)^u\): \(F = [1, -i, -1, i]\). Same magnitudes, different phase.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">A pattern with 30 cycles/cm is sampled at 40 samples/cm. What do you see?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Nyquist limit is 20 cycles/cm, so it aliases. The copy at 30 − 40 = −10 shows up: a 10 cycles/cm pattern.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why does a sharp-edged object have a spectrum that spreads to high frequencies?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>A sharp edge is like a step / box. Its transform is a sinc-like function that decays slowly (like \(1/\mu\)), so it has energy at high frequencies. Smooth objects have quickly decaying spectra.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · Fourier</h3>
+  <ul>
+    <li>\(e^{i\theta} = \cos\theta + i\sin\theta\)</li>
+    <li>\(F(\mu) = \int f e^{-2\pi i\mu t}dt\); inverse \(+\)</li>
+    <li><b>Box</b> width W ↔ \(AW\,\text{sinc}(\mu W)\); sinc\((x)=\frac{\sin\pi x}{\pi x}\)</li>
+    <li>Gaussian σ ↔ Gaussian \(1/(2\pi\sigma)\); \(\delta\) ↔ 1</li>
+    <li><b>Shift</b> \(f(t-t_0)\) ↔ \(Fe^{-2\pi i\mu t_0}\)</li>
+    <li>\(f*h\) ↔ \(FH\); \(fh\) ↔ \(F*H\)</li>
+    <li>\(f(at)\) ↔ \(\frac{1}{|a|}F(\mu/a)\)</li>
+    <li><b>Nyquist</b>: rate \(&gt; 2\mu_{\max}\); else alias</li>
+    <li><b>DFT</b> \(F[u]=\sum f[x]e^{-2\pi iux/M}\), inverse has \(1/M\)</li>
+    <li>DFT periodic, circular conv; FFT \(O(M\log M)\)</li>
+    <li>Real f: \(F[-u] = F[u]^*\); shift → phase only</li>
+    <li>Centre: \((-1)^{x+y}f\); show \(\log(1+|F|)\)</li>
+  </ul>
+</div></section>
+</article>

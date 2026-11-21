@@ -1,0 +1,140 @@
+<article class="chapter" data-id="transforms" data-title="Transforms beyond Fourier" data-tag="post">
+<header class="ch-head">
+  <h1>Image transforms beyond Fourier</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 15 · Quiz 3 Q3</span></div>
+</header>
+
+<section class="slide">
+  <h3>A transform is a change of basis</h3>
+  <p>A <strong>vector space</strong> is any set where you can add things and scale them: column vectors, images, functions.</p>
+  <ul>
+    <li><strong>Span</strong> of \(S = \{s_1..s_n\}\): every combination \(\alpha_1s_1 + \dots + \alpha_ns_n\).</li>
+    <li><strong>Linearly independent</strong>: no vector in \(S\) is a combination of the others.</li>
+    <li><strong>Basis</strong>: independent and spans the whole space. Every vector then has <em>one</em> set of coefficients.</li>
+  </ul>
+  <h4>Example: box functions</h4>
+  <p>\(b_{a,b}(x) = 1\) on \([a, b)\), else 0.</p>
+  <ul>
+    <li>span\(\{b_{0,1}, b_{1,2}, b_{2,3}, b_{3,4}\}\) = functions that are constant on each unit interval of [0, 4) and 0 elsewhere.</li>
+    <li>\(\{b_{0,1}, b_{1,2}, b_{2,3}, b_{0,2}\}\) is <em>not</em> independent: \(b_{0,2} = b_{0,1} + b_{1,2}\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Inner products make coefficients easy</h3>
+  \[ \langle f, g\rangle = \sum_{x,y} f[x,y]^*\,g[x,y] \quad\text{or}\quad \int_a^b f(x)^*g(x)\,dx, \qquad \|f\| = \sqrt{\langle f, f\rangle} \]
+  <ul>
+    <li><strong>Orthogonal</strong> basis: \(\langle s_i, s_j\rangle = 0\) for \(i\ne j\). <strong>Orthonormal</strong>: also \(\|s_i\| = 1\).</li>
+    <li>Then the coefficients are just inner products:</li>
+  </ul>
+  \[ \alpha_i = \frac{\langle s_i, v\rangle}{\langle s_i, s_i\rangle} \ \ (\text{orthogonal}), \qquad \alpha_i = \langle s_i, v\rangle \ \ (\text{orthonormal}) \]
+  <p>This is exactly the Fourier series formula, with \(s_n = e^{2\pi i nt/T}\).</p>
+  <p>If \(S\) does not span everything, the same formula gives the <strong>closest</strong> approximation. Example: approximate \(f\) on [0, 10] with \(\{b_{0,5}, b_{5,10}\}\): the coefficients are the averages of \(f\) over [0, 5] and [5, 10].</p>
+  <div class="note"><b>Orthogonal transforms preserve energy</b>: \(\|f\| = \|t\|\) and \(\langle f, f'\rangle = \langle t, t'\rangle\). (Parseval.)</div>
+</section>
+
+<section class="slide">
+  <h3>Transforms as matrices</h3>
+  <p>Put the basis vectors as columns of \(S\). Then \(f = S\,t\) (inverse transform) and \(t = A\,f\) with \(A = S^{-1}\) (forward).</p>
+  <p>If the basis is orthonormal, \(A = S^{*T}\): the forward matrix has the <strong>conjugated basis vectors as rows</strong>.</p>
+  <h4>2D, separable</h4>
+  <p>Basis images \(s_{uv}[x,y] = p_u[x]\,q_v[y]\). With \(p\)'s as rows of \(A_M\) and \(q\)'s as rows of \(A_N\):</p>
+  \[ T = A_M\,F\,A_N^T, \qquad F = A_M^T\,T\,A_N \ \ (\text{real orthonormal}) \]
+  <p>So the image is a weighted sum of basis images: \(F = \sum_{u,v} t_{uv}\,S_{uv}\), \(S_{uv} = p_u q_v^T\).</p>
+</section>
+
+<section class="slide">
+  <h3>The discrete cosine transform (DCT)</h3>
+  \[ s_u(x) = \alpha_u\cos\frac{\pi u\,(x + \tfrac12)}{N}, \qquad \alpha_0 = \sqrt{1/N},\ \alpha_{u>0} = \sqrt{2/N} \]
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":120,"h":80,"pad":8,"x":[-0.5,7.5],"y":[-1.1,1.1],"yaxis":false,"curves":[{"f":"1","c":1}]}'></svg><div class="cap">u = 0</div></div>
+    <div><svg class="plot" data-plot='{"w":120,"h":80,"pad":8,"x":[-0.5,7.5],"y":[-1.1,1.1],"yaxis":false,"curves":[{"f":"cos(PI*(x+0.5)/8)","c":1}]}'></svg><div class="cap">u = 1</div></div>
+    <div><svg class="plot" data-plot='{"w":120,"h":80,"pad":8,"x":[-0.5,7.5],"y":[-1.1,1.1],"yaxis":false,"curves":[{"f":"cos(2*PI*(x+0.5)/8)","c":1}]}'></svg><div class="cap">u = 2</div></div>
+    <div><svg class="plot" data-plot='{"w":120,"h":80,"pad":8,"x":[-0.5,7.5],"y":[-1.1,1.1],"yaxis":false,"curves":[{"f":"cos(3*PI*(x+0.5)/8)","c":1}]}'></svg><div class="cap">u = 3</div></div>
+  </figure>
+  <ul>
+    <li>Real cosines of increasing frequency, orthonormal.</li>
+    <li>Example: \(f = [0, 1, 4, 9]\) → \(t = [7, -6.69, 2, -0.48]\). Energy sits in the first few coefficients.</li>
+    <li>Fast: mirror \(f\) to length 2N, take a 2N-point FFT, keep the first N terms, multiply by \(e^{-\pi iu/2N}\) (and normalize). \(O(N\log N)\).</li>
+  </ul>
+  <table>
+    <tr><th>DCT vs DFT</th><th></th></tr>
+    <tr><td>+</td><td>Real inputs, real outputs</td></tr>
+    <tr><td>+</td><td>No fake jump at the borders (better energy compaction)</td></tr>
+    <tr><td>−</td><td>No simple shift property, so no convolution theorem</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h3>Quiz 3 Q3, solved: ramp in DFT vs DCT</h3>
+  <p><em>f is a linear ramp \([0, 1, \dots, N-1]\). Are high-frequency coefficients larger in the DFT F or the DCT t?</em></p>
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":120,"x":[-4,8],"y":[-0.5,4.5],"curves":[{"f":"((x%4)+4)%4","c":3,"n":2400}],"marks":[{"x":0},{"x":4}],"text":[{"x":4.3,"y":4.1,"t":"DFT repeats it: big jumps","cl":"sm lbl3"}]}'></svg>
+    <svg class="plot" data-plot='{"w":520,"h":120,"x":[-4,8],"y":[-0.5,4.5],"curves":[{"f":"(((x+0.5)%8)+8)%8<4?(((x+0.5)%8)+8)%8-0.5:7.5-(((x+0.5)%8)+8)%8","c":2,"n":2400}],"marks":[{"x":-0.5},{"x":3.5}],"text":[{"x":4.3,"y":4.1,"t":"DCT mirrors it: continuous","cl":"sm lbl2"}]}'></svg>
+  </figure>
+  <ol>
+    <li>The DFT treats \(f\) as periodic. Repeating a ramp gives a <strong>sawtooth</strong> with a jump of size \(N-1\) every period.</li>
+    <li>A jump needs lots of high frequencies: coefficients decay only like \(1/u\).</li>
+    <li>The DCT treats \(f\) as periodic <em>and even</em> (mirrored). A mirrored ramp is a <strong>triangle wave</strong>: continuous, with only kinks. Coefficients decay like \(1/u^2\).</li>
+  </ol>
+  <p><strong>Answer: high-frequency coefficients are much larger in F (the DFT).</strong> This is also why JPEG uses the DCT.</p>
+</section>
+
+<section class="slide">
+  <h3>DST and Walsh–Hadamard</h3>
+  <ul>
+    <li><strong>DST</strong>: \(s_u(x) = \sqrt{\tfrac{2}{N+1}}\sin\frac{\pi(u+1)(x+1)}{N+1}\). Same idea with an <em>odd</em> extension.</li>
+    <li><strong>Walsh–Hadamard (WHT)</strong>: basis entries are only ±1. Built recursively; no multiplications needed.</li>
+  </ul>
+  \[ H_1 = [1],\quad H_{2N} = \begin{bmatrix}H_N & H_N\\ H_N & -H_N\end{bmatrix},\quad H_4 = \begin{bmatrix}1&1&1&1\\1&-1&1&-1\\1&1&-1&-1\\1&-1&-1&1\end{bmatrix} \]
+  <p>Orthonormal version: \(A = H_N/\sqrt N\). Reorder rows by <strong>sequency</strong> (number of sign changes: 0, 1, 2, 3) to get "low to high frequency".</p>
+  <p>Example: \(f = [1,2,3,4]\): \(H_4 f = [10, -2, -4, 0]\), divided by 2 → \([5, -1, -2, 0]\).</p>
+</section>
+
+<section class="slide">
+  <h3>Time vs frequency: the uncertainty limit</h3>
+  <figure class="row">
+    <div><svg class="fig" viewBox="0 0 150 130"><g class="c0 thin"><rect x="10" y="10" width="130" height="110" style="fill:none"/></g><g class="c1 thin"><path d="M26 10V120M42 10V120M58 10V120M74 10V120M90 10V120M106 10V120M122 10V120"/></g><text x="75" y="128" class="mid sm">time →</text></svg><div class="cap">standard basis: sharp in time</div></div>
+    <div><svg class="fig" viewBox="0 0 150 130"><g class="c0 thin"><rect x="10" y="10" width="130" height="110" style="fill:none"/></g><g class="c2 thin"><path d="M10 24H140M10 38H140M10 52H140M10 66H140M10 80H140M10 94H140M10 108H140"/></g><text x="75" y="128" class="mid sm">time →</text></svg><div class="cap">Fourier: sharp in frequency</div></div>
+    <div><svg class="fig" viewBox="0 0 150 130"><g class="c0 thin"><rect x="10" y="10" width="130" height="110" style="fill:none"/></g><g class="c4 thin"><path d="M10 65H140M10 92H140M10 106H140M75 10V65M42 65V92M75 65V92M108 65V92M26 92V106M42 92V106M58 92V106M75 92V106M91 92V106M108 92V106M124 92V106"/></g><text x="75" y="128" class="mid sm">time →</text></svg><div class="cap">wavelets: both, adapted to scale</div></div>
+  </figure>
+  <p>DCT, DST, WHT are not localized in time either. What if frequency content changes over time?</p>
+  <div class="note"><b>Heisenberg–Gabor.</b> For any normalized function, \(\sigma_t^2\,\sigma_f^2 \ge \frac{1}{16\pi^2}\). An impulse has \(\sigma_t = 0, \sigma_f = \infty\); a sinusoid the reverse. You cannot be perfectly sharp in both. Wavelets pick a good compromise at each scale.</div>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text"><span class="q-src">Homework</span>Tent functions \(t_i\) rise 0→1 on \([i-1, i]\), fall back on \([i, i+1]\). (a) What is span\(\{t_0..t_3\}\)? Any discontinuous functions? (b) Independent? (c) Orthogonal?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>(a) Continuous piecewise-linear functions with corners only at integers, zero outside \((-1, 4)\). Value at integer \(i\) = coefficient of \(t_i\). No discontinuous functions.</p>
+      <p>(b) Yes: at \(x = i\) only \(t_i\) is nonzero, so a zero combination forces every coefficient to 0.</p>
+      <p>(c) No: neighbours overlap. \(\langle t_i, t_{i+1}\rangle = \int_0^1 x(1-x)\,dx = 1/6 \ne 0\).</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Is the DFT of a constant signal "sparse"? What about the DCT of a step \([0,0,\dots,1,1]\)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Constant: only \(F[0]\) is nonzero, very sparse. Step: in the DCT the mirrored step is still a step (a jump in the middle), so many coefficients are nonzero (decay ~\(1/u\)). Neither DFT nor DCT is sparse for steps; Haar wavelets are (O(log N) coefficients).</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Write the 2 × 2 orthonormal Hadamard transform of the image \(\begin{bmatrix}4&2\\2&0\end{bmatrix}\).</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(A = \frac{1}{\sqrt2}\begin{bmatrix}1&1\\1&-1\end{bmatrix}\). \(T = AFA^T = \frac12\begin{bmatrix}1&1\\1&-1\end{bmatrix}\begin{bmatrix}4&2\\2&0\end{bmatrix}\begin{bmatrix}1&1\\1&-1\end{bmatrix}\). First \(\begin{bmatrix}6&2\\2&2\end{bmatrix}\), times right matrix: \(\begin{bmatrix}8&4\\4&0\end{bmatrix}\), halve: \(\begin{bmatrix}4&2\\2&0\end{bmatrix}\). (This image happens to be its own transform.)</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · transforms</h3>
+  <ul>
+    <li><b>Basis</b>: independent + spans</li>
+    <li>\(\langle f,g\rangle = \sum f^*g\); \(\alpha_i = \langle s_i,v\rangle/\langle s_i,s_i\rangle\)</li>
+    <li>Non-spanning set → best approximation (projection)</li>
+    <li>\(f = St\), \(t = Af\), \(A = S^{-1} = S^{*T}\) if orthonormal</li>
+    <li>2D: \(T = A_MFA_N^T\), \(F = A_M^TTA_N\)</li>
+    <li><b>DCT</b> \(\alpha_u\cos\frac{\pi u(x+1/2)}{N}\), \(\alpha_0=\sqrt{1/N}\), else \(\sqrt{2/N}\)</li>
+    <li>DFT: periodic ext. (jumps, ~1/u); DCT: even ext. (~1/u²)</li>
+    <li>Ramp: DFT high-freq ≫ DCT high-freq</li>
+    <li><b>WHT</b> \(H_{2N} = [H\ H; H\ -H]\), ÷√N; sequency order</li>
+    <li>\(\sigma_t^2\sigma_f^2 \ge 1/(16\pi^2)\)</li>
+  </ul>
+</div></section>
+</article>

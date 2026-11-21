@@ -1,0 +1,102 @@
+<article class="chapter" data-id="freqfilter" data-title="Frequency-domain filtering" data-tag="pre">
+<header class="ch-head">
+  <h1>Filtering in the frequency domain</h1>
+  <div class="ch-meta"><span>Pre-minor</span><span>Deck 09 · Minor Q5(b)</span></div>
+</header>
+
+<section class="slide">
+  <h3>The recipe</h3>
+  <ol>
+    <li><strong>Pad</strong> \(f\) (M × N) with zeros to P × Q, usually 2M × 2N.</li>
+    <li>DFT: \(F = \mathcal F(f)\). (Centre it if your \(H\) is centred.)</li>
+    <li>Multiply: \(G = H\,F\).</li>
+    <li>Inverse DFT, take the real part.</li>
+    <li>Crop back to M × N.</li>
+  </ol>
+  <div class="note trap"><b>Why pad?</b> The DFT assumes the image repeats forever. Without padding, convolution wraps around: the left edge bleeds into the right edge (<strong>wraparound error</strong>).</div>
+  <p>Any spatial kernel \(h\) has a transfer function \(H = \mathcal F(h)\), and the reverse. Cost: spatial \(O(MNmn)\) vs frequency \(O(MN\log MN)\). Frequency wins for big kernels.</p>
+</section>
+
+<section class="slide">
+  <h3>Low-pass filters: ideal, Gaussian, Butterworth</h3>
+  <p>\(D(u,v)\) = distance from the centre of the (centred) spectrum. \(D_0\) = cutoff.</p>
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":150,"x":[0,3],"y":[0,1.15],"xl":"D/D₀","yl":"H","curves":[{"f":"x<1?1:0","c":0,"n":900,"t":"ideal","tx":0.3,"tdy":-6},{"f":"exp(-x*x/2)","c":2,"t":"Gaussian","tx":1.9,"tdy":12},{"f":"1/(1+pow(x,4))","c":1,"t":"Butterworth n=2","tx":1.25,"tdx":8,"tdy":-4}]}'></svg>
+  </figure>
+  \[ H_{\text{ideal}} = [D \le D_0],\quad H_G = e^{-D^2/2D_0^2},\quad H_B = \frac{1}{1 + (D/D_0)^{2n}} \]
+  <ul>
+    <li><strong>Ideal</strong>: hard cut → its spatial kernel is a sinc → <strong>ringing</strong> around edges.</li>
+    <li><strong>Gaussian</strong>: spatial kernel is also Gaussian → no ringing.</li>
+    <li><strong>Butterworth</strong>: order \(n\) tunes between Gaussian-like (small n) and ideal-like (large n).</li>
+    <li>Bigger \(D_0\) = less blur. Width in frequency ∝ 1 / width in space.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>High-pass, emphasis, homomorphic</h3>
+  <ul>
+    <li><strong>High-pass</strong>: \(H_{HP} = 1 - H_{LP}\). Spatially \(h_{HP} = \delta - h_{LP}\). Keeps edges, kills flat areas (the mean becomes 0).</li>
+    <li><strong>Unsharp masking</strong> in frequency: \(G = (1 + k H_{HP})F\). General high-frequency emphasis: \(H = k_1 + k_2 H_{HP}\).</li>
+    <li><strong>Laplacian</strong> in frequency: \(H = -4\pi^2(u^2+v^2)\).</li>
+  </ul>
+  <h4>Homomorphic filtering</h4>
+  <p>Image = illumination × reflectance: \(f = i\cdot r\). Illumination varies slowly; reflectance changes sharply. Multiplication can't be split by a filter, so take logs first:</p>
+  \[ \ln f = \ln i + \ln r \;\to\; \text{filter: shrink low, boost high} \;\to\; \exp \]
+  <p>Result: evens out lighting, enhances detail.</p>
+  <h4>Band-reject and notch filters</h4>
+  <p>Periodic noise (stripes) shows up as bright spikes in the spectrum. A <strong>notch filter</strong> zeroes small regions around those spikes (and their symmetric twins).</p>
+</section>
+
+<section class="slide">
+  <h3>Minor Q5(b), solved: shrinking without aliasing</h3>
+  <p><em>Shrink an M × N image to 0.5×. What should be done to avoid aliasing? Give the operation on \(F[u,v]\).</em></p>
+  <ul>
+    <li>Shrinking = sampling at half the rate. The new image can only hold frequencies up to half the old Nyquist limit.</li>
+    <li>So first <strong>remove frequencies above M/4 and N/4</strong> (low-pass), then subsample.</li>
+  </ul>
+  <p><strong>In the DFT</strong>: centre the spectrum. Keep only the central block \(|u| &lt; M/4\), \(|v| &lt; N/4\) (size M/2 × N/2). Take the inverse DFT of that smaller block. Divide by 4 (because of the \(1/MN\) factor) to keep the same brightness.</p>
+  <figure>
+    <svg class="fig" viewBox="0 0 400 150">
+      <rect x="20" y="10" width="130" height="130" class="fr"/>
+      <rect x="52.5" y="42.5" width="65" height="65" class="soft1" style="stroke:var(--safe)"/>
+      <circle cx="85" cy="75" r="3" class="f0"/>
+      <text x="85" y="148" class="mid sm">centred F, M × N</text>
+      <path d="M170 75 H230" class="c0 thin"/><path d="M222 69 L230 75 L222 81" class="c0 thin"/>
+      <rect x="250" y="42.5" width="65" height="65" class="soft1" style="stroke:var(--safe)"/>
+      <text x="282" y="125" class="mid sm">IDFT (M/2 × N/2) ÷ 4</text>
+    </svg>
+  </figure>
+  <div class="note trap"><b>What lost marks.</b> "Use interpolation instead of sampling" is not enough. Name the low-pass step and the cutoff (half the band in each direction).</div>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">An ideal low-pass filter causes ripples next to edges. Why? How do you avoid them?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>The ideal \(H\) is a box (disk) in frequency, whose inverse transform is a sinc-like kernel with oscillating side lobes. Convolving an edge with it creates ripples (ringing). Use a smooth cutoff: Gaussian (no ringing) or low-order Butterworth.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">What does \(H(u,v) = 0\) at \((0,0)\) and 1 elsewhere do to an image?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>It removes the DC term, i.e. subtracts the mean. The output has zero average, so it needs rescaling to display.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">An image has bright vertical stripes repeating every 8 pixels (image width 256). Where are the spikes in the centred spectrum, and how do you remove them?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Stripes vary along x with frequency 256/8 = 32 cycles per image width. Spikes at \(u = \pm32\), \(v = 0\) from the centre. Apply notch-reject filters at those two points.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · frequency filtering</h3>
+  <ul>
+    <li>Pad 2M×2N → DFT → \(HF\) → IDFT → Re → crop</li>
+    <li>No pad → wraparound (circular conv)</li>
+    <li><b>Ideal</b> \([D\le D_0]\): ringing (sinc)</li>
+    <li><b>Gauss</b> \(e^{-D^2/2D_0^2}\): no ringing</li>
+    <li><b>Butterworth</b> \(1/(1+(D/D_0)^{2n})\)</li>
+    <li>\(H_{HP} = 1 - H_{LP}\); emphasis \(k_1 + k_2H_{HP}\)</li>
+    <li><b>Homomorphic</b>: ln → filter → exp (\(f = ir\))</li>
+    <li><b>Notch</b>: zero spikes of periodic noise (+ twins)</li>
+    <li><b>Shrink 0.5×</b>: keep centre \(|u|&lt;M/4, |v|&lt;N/4\), IDFT, ÷4</li>
+  </ul>
+</div></section>
+</article>

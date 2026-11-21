@@ -1,0 +1,137 @@
+<article class="chapter" data-id="jpeg" data-title="Block transform coding, JPEG" data-tag="post">
+<header class="ch-head">
+  <h1>Block transform coding and JPEG</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 19, 20</span></div>
+</header>
+
+<section class="slide">
+  <h3>The idea</h3>
+  <p>Split the image into n × n blocks. Transform each block. Most energy lands in a few coefficients. Keep those (roughly), drop or coarsely store the rest.</p>
+  <figure>
+    <svg class="fig" viewBox="0 0 540 90">
+      <g class="mono sm">
+        <rect x="10" y="25" width="80" height="40" rx="6" class="fr"/><text x="50" y="49" class="mid">block G</text>
+        <rect x="120" y="25" width="90" height="40" rx="6" class="fr"/><text x="165" y="49" class="mid">transform T</text>
+        <rect x="240" y="25" width="90" height="40" rx="6" class="soft1" style="stroke:var(--safe)"/><text x="285" y="49" class="mid">quantize T̂</text>
+        <rect x="360" y="25" width="80" height="40" rx="6" class="fr"/><text x="400" y="49" class="mid">entropy code</text>
+        <text x="490" y="49" class="mid">bits</text>
+      </g>
+      <g class="c0 thin"><path d="M90 45H120M210 45H240M330 45H360M440 45H470"/></g>
+      <text x="285" y="82" class="mid sm lbl1">the only lossy step</text>
+    </svg>
+  </figure>
+  <p>Keep only \(1/k\) of the coefficients → compression ratio ≈ \(k\).</p>
+  <p>If the transform is orthogonal, the error equals what you threw away:</p>
+  \[ \|G - \hat G\|^2 = \|T - \hat T\|^2 = \text{sum of squares of dropped coefficients} \]
+</section>
+
+<section class="slide">
+  <h3>Which transform, which block size?</h3>
+  <ul>
+    <li>We want a transform that packs the most energy into the fewest coefficients.</li>
+    <li>The best one depends on the data: <strong>Karhunen–Loève transform</strong> (= PCA of the blocks). Must be computed and sent per image.</li>
+    <li>The <strong>DCT</strong> is fixed and nearly as good (optimal-ish for images modelled as a first-order Markov process). It also has no border jumps (see Quiz 3 Q3).</li>
+  </ul>
+  <ul>
+    <li>Bigger blocks: more compression, more compute; gains flatten after about 8 × 8.</li>
+    <li>JPEG uses <strong>8 × 8</strong>. HEVC uses variable 16 × 16 to 64 × 64.</li>
+    <li>Strong compression → visible <strong>blocking artifacts</strong> at block borders.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Bit allocation and the quantization matrix</h3>
+  <ul>
+    <li><strong>Zonal coding</strong>: keep coefficients at fixed positions (the ones with highest variance over all blocks), same for every block.</li>
+    <li><strong>Threshold coding</strong>: keep coefficients bigger than a threshold. Positions vary per block, mostly at low frequency.</li>
+  </ul>
+  <p>In practice: store every coefficient, but with precision that depends on its position:</p>
+  \[ \hat T[u,v] = \operatorname{round}\!\Big(\frac{T[u,v]}{Z[u,v]}\Big) \]
+  <ul>
+    <li>Big \(Z[u,v]\) (high frequencies) → coarse. If \(|T| &lt; Z/2\), it becomes 0.</li>
+    <li>Change quality by scaling \(Z\) up or down.</li>
+  </ul>
+  <p>Example: \(T(0,0) = 260, Z = 16 \to 16\). \(T(0,1) = -29, Z = 11 \to \text{round}(-2.64) = -3\). \(T(5,5) = 7, Z = 80 \to 0\).</p>
+  <p>Decoder: \(\tilde T = \hat T \cdot Z\), then inverse DCT.</p>
+</section>
+
+<section class="slide">
+  <h3>JPEG step by step</h3>
+  <ol>
+    <li>Split into 8 × 8 blocks.</li>
+    <li>Subtract 128 (= L/2) so values centre on 0.</li>
+    <li>2D DCT.</li>
+    <li>Quantize with \(Z\).</li>
+    <li><strong>Zigzag</strong> scan (low → high frequency), so the zeros bunch up at the end.</li>
+    <li>DC coefficient: code the <em>difference</em> from the previous block's DC (predictive coding).</li>
+    <li>AC coefficients: run-length of zeros + value, then Huffman. End-of-block code for the trailing zeros.</li>
+  </ol>
+  <figure>
+    <svg class="fig" viewBox="0 0 200 200" style="max-width:220px">
+      <g class="fr">
+        <rect x="20" y="20" width="160" height="160"/>
+      </g>
+      <path d="M30 30 L50 30 L30 50 L30 70 L50 50 L70 30 L90 30 L70 50 L50 70 L30 90 L30 110 L50 90 L70 70 L90 50 L110 30" class="c1"/>
+      <circle cx="30" cy="30" r="4" class="f1"/>
+      <text x="30" y="16" class="sm">DC</text><text x="150" y="196" class="sm">high freq</text>
+    </svg>
+  </figure>
+</section>
+
+<section class="slide">
+  <h3>Colour in JPEG: YCbCr and chroma subsampling</h3>
+  <p>Eyes are much more sensitive to brightness detail than to colour detail. So:</p>
+  <ol>
+    <li>Convert RGB → Y'CbCr (\(K_R = 0.299, K_G = 0.587, K_B = 0.114\)).</li>
+    <li><strong>Subsample</strong> Cb and Cr.</li>
+    <li>Code Y', Cb, Cr separately with the 8 × 8 DCT pipeline.</li>
+  </ol>
+  <figure class="row">
+    <div><div class="grids" style="margin:0"><div><div class="grid" data-grid="####/####"></div><span class="cap">4:4:4 (full)</span></div></div></div>
+    <div><div class="grids" style="margin:0"><div><div class="grid" data-grid="#.#./#.#."></div><span class="cap">4:2:2 (half width)</span></div></div></div>
+    <div><div class="grids" style="margin:0"><div><div class="grid" data-grid="#.#./...."></div><span class="cap">4:2:0 (quarter)</span></div></div></div>
+  </figure>
+  <p><strong>J:a:b</strong> on a J × 2 block: J = width of the block, a = chroma samples in row 1, b = chroma samples in row 2. Filled cells = where a chroma sample is kept.</p>
+  <p>4:2:0: Y full (1) + Cb ¼ + Cr ¼ = 1.5 samples/pixel instead of 3. Half the raw data before any DCT.</p>
+</section>
+
+<section class="slide">
+  <h3>Wavelet coding (JPEG 2000)</h3>
+  <ul>
+    <li>No blocks: take a multi-level wavelet transform of the whole image (CDF 9/7 wavelets).</li>
+    <li>Quantize coefficients (rounded <em>towards zero</em>), code them bit-plane by bit-plane.</li>
+    <li>No blocking artifacts. At high compression it blurs instead. Better quality than JPEG at the same ratio, e.g. at C = 52.</li>
+  </ul>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">Quantize the DCT coefficients \([-415, 30, -12, 4]\) with \(Z = [16, 11, 10, 16]\). Then dequantize. What is the squared error?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(\hat T = \text{round}([-25.9, 2.73, -1.2, 0.25]) = [-26, 3, -1, 0]\). Dequantized: \([-416, 33, -10, 0]\). Errors: \(1, 3, 2, 4\) → squared sum \(1+9+4+16 = 30\). Orthogonal DCT, so the pixel-domain squared error is also 30.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why does JPEG code DC coefficients differentially but AC coefficients with run-lengths?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>DC = block average; neighbouring blocks have similar averages, so the difference is small (predictive coding). AC coefficients after quantization are mostly zero at high frequencies, so zigzag + run-lengths of zeros captures them compactly.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why would using the DFT instead of the DCT for 8 × 8 blocks be worse?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>The DFT assumes each block repeats, creating jumps at block edges whenever the left and right (or top and bottom) sides differ. Those jumps need many high-frequency coefficients, which then get quantized → more error and visible ringing. The DCT's mirror extension has no jump. Also DFT coefficients are complex.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · JPEG</h3>
+  <ul>
+    <li>Block → transform → <b>quantize</b> (lossy) → entropy code</li>
+    <li>Keep 1/k coeffs → \(C\approx k\)</li>
+    <li>Orthogonal: \(\|G-\hat G\|^2 = \sum\) dropped coeffs²</li>
+    <li><b>KLT/PCA</b> optimal (data-dependent); DCT ≈ optimal</li>
+    <li>\(\hat T = \text{round}(T/Z)\); zero if \(|T|&lt;Z/2\); scale Z for quality</li>
+    <li>JPEG: 8×8, −128, DCT, Z, zigzag, DC diff, RLE+Huffman</li>
+    <li><b>4:2:0</b>: 1.5 samples/px vs 3</li>
+    <li>J:a:b = width, chroma row 1, chroma row 2</li>
+    <li><b>JPEG 2000</b>: DWT CDF 9/7, bit planes, no blocks</li>
+  </ul>
+</div></section>
+</article>
