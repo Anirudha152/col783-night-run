@@ -114,16 +114,189 @@
 </section>
 
 <section class="slide">
-  <h3>2D DFT and what the spectrum shows</h3>
-  \[ F[u,v] = \sum_{x}\sum_{y} f[x,y]\,e^{-2\pi i(ux/M + vy/N)} \]
+  <h3>The 2D Fourier transform</h3>
+  <p>Same idea as 1D: write the image as a sum of waves. In 2D each wave is a <strong>ripple</strong> across the image.</p>
+  \[ F(\mu,\nu) = \iint f(t,z)\,e^{-2\pi i(\mu t + \nu z)}\,dt\,dz, \qquad f(t,z) = \iint F(\mu,\nu)\,e^{2\pi i(\mu t + \nu z)}\,d\mu\,d\nu \]
+  <p><strong>Discrete</strong> (image of M × N pixels):</p>
+  \[ F[u,v] = \sum_{x=0}^{M-1}\sum_{y=0}^{N-1} f[x,y]\,e^{-2\pi i(ux/M + vy/N)}, \qquad f[x,y] = \frac{1}{MN}\sum_{u}\sum_{v} F[u,v]\,e^{2\pi i(ux/M + vy/N)} \]
+  <figure>
+    <svg class="fig" style="max-width:460px" viewBox="-2 -2 424 114"><clipPath id="rip0"><rect x="0" y="0" width="90" height="90"/></clipPath>
+<rect x="0" y="0" width="90" height="90" class="fr"/>
+<g clip-path="url(#rip0)" class="c0" style="stroke-width:18.9;opacity:.85">
+<line x1="-180.0" y1="-45.0" x2="-180.0" y2="135.0"/>
+<line x1="-135.0" y1="-45.0" x2="-135.0" y2="135.0"/>
+<line x1="-90.0" y1="-45.0" x2="-90.0" y2="135.0"/>
+<line x1="-45.0" y1="-45.0" x2="-45.0" y2="135.0"/>
+<line x1="0.0" y1="-45.0" x2="0.0" y2="135.0"/>
+<line x1="45.0" y1="-45.0" x2="45.0" y2="135.0"/>
+<line x1="90.0" y1="-45.0" x2="90.0" y2="135.0"/>
+<line x1="135.0" y1="-45.0" x2="135.0" y2="135.0"/>
+<line x1="180.0" y1="-45.0" x2="180.0" y2="135.0"/>
+<line x1="225.0" y1="-45.0" x2="225.0" y2="135.0"/>
+<line x1="270.0" y1="-45.0" x2="270.0" y2="135.0"/>
+</g>
+<text x="45.0" y="106" class="mid sm">(u, v) = (2, 0)</text>
+<clipPath id="rip1"><rect x="110" y="0" width="90" height="90"/></clipPath>
+<rect x="110" y="0" width="90" height="90" class="fr"/>
+<g clip-path="url(#rip1)" class="c0" style="stroke-width:12.6;opacity:.85">
+<line x1="245.0" y1="-135.0" x2="65.0" y2="-135.0"/>
+<line x1="245.0" y1="-105.0" x2="65.0" y2="-105.0"/>
+<line x1="245.0" y1="-75.0" x2="65.0" y2="-75.0"/>
+<line x1="245.0" y1="-45.0" x2="65.0" y2="-45.0"/>
+<line x1="245.0" y1="-15.0" x2="65.0" y2="-15.0"/>
+<line x1="245.0" y1="15.0" x2="65.0" y2="15.0"/>
+<line x1="245.0" y1="45.0" x2="65.0" y2="45.0"/>
+<line x1="245.0" y1="75.0" x2="65.0" y2="75.0"/>
+<line x1="245.0" y1="105.0" x2="65.0" y2="105.0"/>
+<line x1="245.0" y1="135.0" x2="65.0" y2="135.0"/>
+<line x1="245.0" y1="165.0" x2="65.0" y2="165.0"/>
+<line x1="245.0" y1="195.0" x2="65.0" y2="195.0"/>
+<line x1="245.0" y1="225.0" x2="65.0" y2="225.0"/>
+</g>
+<text x="155.0" y="106" class="mid sm">(0, 3)</text>
+<clipPath id="rip2"><rect x="220" y="0" width="90" height="90"/></clipPath>
+<rect x="220" y="0" width="90" height="90" class="fr"/>
+<g clip-path="url(#rip2)" class="c0" style="stroke-width:8.9;opacity:.85">
+<line x1="208.6" y1="-138.6" x2="81.4" y2="-11.4"/>
+<line x1="223.6" y1="-123.6" x2="96.4" y2="3.6"/>
+<line x1="238.6" y1="-108.6" x2="111.4" y2="18.6"/>
+<line x1="253.6" y1="-93.6" x2="126.4" y2="33.6"/>
+<line x1="268.6" y1="-78.6" x2="141.4" y2="48.6"/>
+<line x1="283.6" y1="-63.6" x2="156.4" y2="63.6"/>
+<line x1="298.6" y1="-48.6" x2="171.4" y2="78.6"/>
+<line x1="313.6" y1="-33.6" x2="186.4" y2="93.6"/>
+<line x1="328.6" y1="-18.6" x2="201.4" y2="108.6"/>
+<line x1="343.6" y1="-3.6" x2="216.4" y2="123.6"/>
+<line x1="358.6" y1="11.4" x2="231.4" y2="138.6"/>
+<line x1="373.6" y1="26.4" x2="246.4" y2="153.6"/>
+<line x1="388.6" y1="41.4" x2="261.4" y2="168.6"/>
+<line x1="403.6" y1="56.4" x2="276.4" y2="183.6"/>
+<line x1="418.6" y1="71.4" x2="291.4" y2="198.6"/>
+<line x1="433.6" y1="86.4" x2="306.4" y2="213.6"/>
+<line x1="448.6" y1="101.4" x2="321.4" y2="228.6"/>
+</g>
+<text x="265.0" y="106" class="mid sm">(3, 3)</text>
+<clipPath id="rip3"><rect x="330" y="0" width="90" height="90"/></clipPath>
+<rect x="330" y="0" width="90" height="90" class="fr"/>
+<g clip-path="url(#rip3)" class="c0" style="stroke-width:6.0;opacity:.85">
+<line x1="255.0" y1="-89.9" x2="198.0" y2="80.9"/>
+<line x1="268.5" y1="-85.4" x2="211.5" y2="85.4"/>
+<line x1="282.0" y1="-80.9" x2="225.0" y2="89.9"/>
+<line x1="295.5" y1="-76.4" x2="238.5" y2="94.4"/>
+<line x1="309.0" y1="-71.9" x2="252.0" y2="98.9"/>
+<line x1="322.5" y1="-67.4" x2="265.5" y2="103.4"/>
+<line x1="336.0" y1="-62.9" x2="279.0" y2="107.9"/>
+<line x1="349.5" y1="-58.4" x2="292.5" y2="112.4"/>
+<line x1="363.0" y1="-53.9" x2="306.0" y2="116.9"/>
+<line x1="376.5" y1="-49.4" x2="319.5" y2="121.4"/>
+<line x1="390.0" y1="-44.9" x2="333.0" y2="125.9"/>
+<line x1="403.5" y1="-40.4" x2="346.5" y2="130.4"/>
+<line x1="417.0" y1="-35.9" x2="360.0" y2="134.9"/>
+<line x1="430.5" y1="-31.4" x2="373.5" y2="139.4"/>
+<line x1="444.0" y1="-26.9" x2="387.0" y2="143.9"/>
+<line x1="457.5" y1="-22.4" x2="400.5" y2="148.4"/>
+<line x1="471.0" y1="-17.9" x2="414.0" y2="152.9"/>
+<line x1="484.5" y1="-13.4" x2="427.5" y2="157.4"/>
+<line x1="498.0" y1="-8.9" x2="441.0" y2="161.9"/>
+<line x1="511.5" y1="-4.4" x2="454.5" y2="166.4"/>
+<line x1="525.0" y1="0.1" x2="468.0" y2="170.9"/>
+<line x1="538.5" y1="4.6" x2="481.5" y2="175.4"/>
+<line x1="552.0" y1="9.1" x2="495.0" y2="179.9"/>
+</g>
+<text x="375.0" y="106" class="mid sm">(6, 2)</text></svg>
+    <figcaption>The wave for one \((u,v)\). Crests are lines where \(ux + vy\) is constant. The wave moves in the direction of \((u,v)\); stripes run perpendicular to it. Bigger \((u,v)\) = tighter stripes.</figcaption>
+  </figure>
   <ul>
-    <li><strong>Separable</strong>: 1D DFT along rows, then along columns.</li>
-    <li>Each \((u,v)\) is a ripple pattern. Its direction is the direction of \((u,v)\); its frequency is \(\sqrt{u^2+v^2}\).</li>
-    <li>Shift the image → only the <strong>phase</strong> changes, \(|F|\) stays the same. Location info lives in the phase.</li>
-    <li>Rotate the image → the spectrum rotates the same way.</li>
-    <li>Display: centre the spectrum (multiply \(f\) by \((-1)^{x+y}\)), and show \(\log(1 + |F|)\) because values span many orders.</li>
+    <li><strong>Direction</strong> of \((u,v)\) = which way the wave goes. <strong>Length</strong> \(\sqrt{u^2+v^2}\) = how fast it wiggles (its frequency).</li>
+    <li><strong>Separable</strong>: \(e^{-2\pi i(ux/M+vy/N)} = e^{-2\pi iux/M}\,e^{-2\pi ivy/N}\). So do a 1D DFT on every row, then a 1D DFT on every column of the result.</li>
+    <li><strong>2D box</strong> (size T × Z, height A) ↔ \(ATZ\,\text{sinc}(\mu T)\,\text{sinc}(\nu Z)\). A separable function has a separable transform.</li>
+    <li><strong>Sampling in 2D</strong>: no aliasing if \(\Delta T \le \frac{1}{2\mu_{\max}}\) and \(\Delta Z \le \frac{1}{2\nu_{\max}}\). Same Nyquist rule, once per axis.</li>
+    <li>Pixel spacing \(\Delta t\) ↔ frequency range \(1/\Delta t\). Image size \(T = M\Delta t\) ↔ frequency spacing \(1/T\).</li>
   </ul>
-  <div class="note"><b>Link to later chapters.</b> The coefficient \(c_n\) is just an inner product \(\langle s_n, f\rangle / \langle s_n, s_n\rangle\) with the basis sinusoid \(s_n\). DCT, Walsh–Hadamard and wavelets are the same idea with different basis functions.</div>
+</section>
+
+<section class="slide">
+  <h3>Reading the spectrum of an image</h3>
+  <p>\(F[u,v]\) is complex: \(F = |F|\,e^{i\phi}\). \(|F|\) is the <strong>spectrum</strong> (magnitude), \(\phi\) is the <strong>phase</strong>. We look at pictures of \(|F|\).</p>
+  <figure>
+    <svg class="fig" viewBox="-2 -2 766 114"><clipPath id="sp0"><rect x="0" y="0" width="90" height="90"/></clipPath>
+<rect x="0" y="0" width="90" height="90" class="fr"/>
+<g clip-path="url(#sp0)" class="c0" style="stroke-width:9.4;opacity:.85">
+<line x1="-135.0" y1="-45.0" x2="-135.0" y2="135.0"/>
+<line x1="-112.5" y1="-45.0" x2="-112.5" y2="135.0"/>
+<line x1="-90.0" y1="-45.0" x2="-90.0" y2="135.0"/>
+<line x1="-67.5" y1="-45.0" x2="-67.5" y2="135.0"/>
+<line x1="-45.0" y1="-45.0" x2="-45.0" y2="135.0"/>
+<line x1="-22.5" y1="-45.0" x2="-22.5" y2="135.0"/>
+<line x1="0.0" y1="-45.0" x2="0.0" y2="135.0"/>
+<line x1="22.5" y1="-45.0" x2="22.5" y2="135.0"/>
+<line x1="45.0" y1="-45.0" x2="45.0" y2="135.0"/>
+<line x1="67.5" y1="-45.0" x2="67.5" y2="135.0"/>
+<line x1="90.0" y1="-45.0" x2="90.0" y2="135.0"/>
+<line x1="112.5" y1="-45.0" x2="112.5" y2="135.0"/>
+<line x1="135.0" y1="-45.0" x2="135.0" y2="135.0"/>
+<line x1="157.5" y1="-45.0" x2="157.5" y2="135.0"/>
+<line x1="180.0" y1="-45.0" x2="180.0" y2="135.0"/>
+<line x1="202.5" y1="-45.0" x2="202.5" y2="135.0"/>
+<line x1="225.0" y1="-45.0" x2="225.0" y2="135.0"/>
+</g>
+<path d="M96 45.0h22m-6 -5l6 5l-6 5" class="c0 thin"/>
+<rect x="124" y="0" width="90" height="90" class="fr"/><g class="thin dash" style="stroke:var(--line-2)"><line x1="124" y1="45.0" x2="214" y2="45.0"/><line x1="169.0" y1="0" x2="169.0" y2="90"/></g>
+<circle cx="169.0" cy="45.0" r="5" class="f0"/>
+<circle cx="151.0" cy="45.0" r="4.5" class="f1"/>
+<circle cx="187.0" cy="45.0" r="4.5" class="f1"/>
+<text x="107.0" y="106" class="mid sm">stripes → 2 dots (+ DC)</text>
+<clipPath id="sp1"><rect x="274" y="0" width="90" height="90"/></clipPath><rect x="274" y="0" width="90" height="90" class="fr"/><polygon clip-path="url(#sp1)" points="274,90 364,0 364,90" class="f0" style="opacity:.85"/>
+<path d="M370 45.0h22m-6 -5l6 5l-6 5" class="c0 thin"/>
+<rect x="398" y="0" width="90" height="90" class="fr"/><g class="thin dash" style="stroke:var(--line-2)"><line x1="398" y1="45.0" x2="488" y2="45.0"/><line x1="443.0" y1="0" x2="443.0" y2="90"/></g>
+<line x1="406" y1="8" x2="480" y2="82" class="c1"/>
+<circle cx="443.0" cy="45.0" r="5" class="f0"/>
+<text x="381.0" y="106" class="mid sm">edge → line at 90° to it</text>
+<defs><radialGradient id="blobg"><stop offset="0" stop-color="var(--ink)" stop-opacity=".9"/><stop offset="1" stop-color="var(--ink)" stop-opacity="0"/></radialGradient><radialGradient id="dcg"><stop offset="0" stop-color="var(--safe)"/><stop offset="1" stop-color="var(--safe)" stop-opacity="0"/></radialGradient></defs>
+<rect x="548" y="0" width="90" height="90" class="fr"/><circle cx="593.0" cy="45.0" r="38" fill="url(#blobg)"/>
+<path d="M644 45.0h22m-6 -5l6 5l-6 5" class="c0 thin"/>
+<rect x="672" y="0" width="90" height="90" class="fr"/><g class="thin dash" style="stroke:var(--line-2)"><line x1="672" y1="45.0" x2="762" y2="45.0"/><line x1="717.0" y1="0" x2="717.0" y2="90"/></g>
+<circle cx="717.0" cy="45.0" r="16" fill="url(#dcg)"/>
+<circle cx="717.0" cy="45.0" r="4" class="f0"/>
+<text x="655.0" y="106" class="mid sm">smooth → energy near centre</text></svg>
+    <figcaption>Left: image. Right: its centred spectrum (centre = frequency 0).</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Centre</strong> = \(F[0,0]\) = the <strong>DC</strong> term = sum of all pixels = \(MN \times\) mean. Usually the biggest value by far.</li>
+    <li>Near the centre: slow changes (smooth areas). Far from the centre: fast changes (edges, fine texture, noise).</li>
+    <li>A repeating stripe pattern gives a pair of bright dots at \(\pm(u,v)\).</li>
+    <li>An edge or line gives a bright line through the centre, <strong>at 90°</strong> to the edge.</li>
+    <li>Real image ⇒ \(F[-u,-v] = F[u,v]^*\). So \(|F|\) is symmetric about the centre (that is why the dots come in pairs).</li>
+    <li>Real and even \(f\) ⇒ \(F\) real and even. Real and odd ⇒ \(F\) imaginary and odd.</li>
+    <li><strong>Energy</strong> is the same in both domains (Plancherel): \(\sum|f|^2 = \frac{1}{MN}\sum|F|^2\).</li>
+  </ul>
+  <h4>How the picture is made</h4>
+  <ol>
+    <li>The DFT puts frequency 0 in the <strong>corner</strong>. Multiply \(f[x,y]\) by \((-1)^{x+y}\) before the DFT to move it to the centre (same as fftshift, for even M, N).</li>
+    <li>Show \(\log(1 + |F|)\). Without the log, DC is so bright that everything else looks black.</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h3>Shift, rotate, and why phase matters</h3>
+  \[ f[x-x_0,\ y-y_0] \;\Longleftrightarrow\; F[u,v]\,e^{-2\pi i(ux_0/M + vy_0/N)} \]
+  <ul>
+    <li><strong>Shift the image</strong>: \(|F|\) does not change at all. Only the phase changes (by \(-2\pi(ux_0/M+vy_0/N)\)).</li>
+    <li>So <strong>where things are</strong> is stored only in the phase.</li>
+    <li><strong>Rotate the image</strong> by θ → the spectrum rotates by θ too. (Exact in the DFT only for multiples of 90°.)</li>
+    <li><strong>Multiply by a wave</strong>: \(f[x,y]\,e^{2\pi i(u_0x/M+v_0y/N)} \Leftrightarrow F[u-u_0, v-v_0]\). This is the reason \((-1)^{x+y}\) centres the spectrum: \((-1)^{x+y} = e^{i\pi(x+y)}\), a shift by \((M/2, N/2)\).</li>
+  </ul>
+  <h4>The swap experiment (from the lecture)</h4>
+  <table>
+    <tr><th>Do this</th><th>You see</th></tr>
+    <tr><td>Keep the phase, set \(|F| = 1\)</td><td>Edges and outlines are still visible</td></tr>
+    <tr><td>Keep \(|F|\), set phase \(= 0\)</td><td>Garbage: a bright blob, no structure</td></tr>
+    <tr><td>\(|F|\) of a rectangle + phase of a photo</td><td>Looks like the <strong>photo</strong></td></tr>
+  </table>
+  <div class="note"><b>Takeaway.</b> Magnitude says <em>how much</em> of each frequency. Phase says <em>where</em> the edges are, and that is what our eyes use.</div>
+  <h4>2D convolution theorem</h4>
+  \[ f * h \;\Leftrightarrow\; F\,H, \qquad f\,h \;\Leftrightarrow\; \tfrac{1}{MN}\,F * H \]
+  <p>The DFT version is <strong>circular</strong>: the image wraps around at the edges. Zero-pad first, or the left edge leaks into the right edge.</p>
 </section>
 
 <section class="slide practice">
@@ -139,6 +312,20 @@
   <div class="q">
     <div class="q-text">Why does a sharp-edged object have a spectrum that spreads to high frequencies?</div>
     <details class="ans"><summary>Answer</summary><div class="body"><p>A sharp edge is like a step / box. Its transform is a sinc-like function that decays slowly (like \(1/\mu\)), so it has energy at high frequencies. Smooth objects have quickly decaying spectra.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Find the 2D DFT of the 2 × 2 image \(f = \begin{bmatrix}1&2\\3&4\end{bmatrix}\) (row index x, column index y).</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>With M = N = 2, \(e^{-2\pi i\,ux/2} = (-1)^{ux}\). So \(F[u,v] = \sum f[x,y](-1)^{ux+vy}\): plus or minus signs only.</p>
+    <ul><li>\(F[0,0] = 1+2+3+4 = 10\) (sum)</li><li>\(F[1,0] = (1+2) - (3+4) = -4\) (top row − bottom row)</li><li>\(F[0,1] = (1+3) - (2+4) = -2\) (left column − right column)</li><li>\(F[1,1] = 1 - 2 - 3 + 4 = 0\) (diagonals)</li></ul>
+    <p>\(F = \begin{bmatrix}10&-2\\-4&0\end{bmatrix}\). Check with the inverse: \(f[0,0] = \frac14(10 - 2 - 4 + 0) = 1\). ✓</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">A 256 × 256 image has vertical stripes that repeat every 8 pixels. Where are the bright spots in its centred spectrum?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>The stripes change only along the horizontal direction, with 256 / 8 = 32 cycles across the image. So two spots at distance 32 from the centre on the horizontal axis, plus the DC spot in the centre.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">You shift an image 10 pixels right. What happens to \(|F|\) and to the phase? You rotate it 90°?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Shift: \(|F|\) is unchanged; the phase changes by \(-2\pi u\cdot10/M\) (a linear ramp). Rotate 90°: the spectrum (magnitude and phase) rotates by 90° too.</p></div></details>
   </div>
 </section>
 
@@ -156,6 +343,12 @@
     <li><b>DFT</b> \(F[u]=\sum f[x]e^{-2\pi iux/M}\), inverse has \(1/M\)</li>
     <li>DFT periodic, circular conv; FFT \(O(M\log M)\)</li>
     <li>Real f: \(F[-u] = F[u]^*\); shift → phase only</li>
+    <li><b>2D DFT</b> \(F[u,v]=\sum\sum f\,e^{-2\pi i(ux/M+vy/N)}\), inverse \(\frac{1}{MN}\); separable: rows then cols</li>
+    <li>2D box ↔ \(ATZ\,\text{sinc}(\mu T)\text{sinc}(\nu Z)\)</li>
+    <li>\(F[0,0] = \sum f = MN\cdot\)mean; \(\sum|f|^2 = \frac{1}{MN}\sum|F|^2\)</li>
+    <li>Edge ↔ line at 90° through centre; stripes ↔ dot pair</li>
+    <li>Shift: \(|F|\) same, phase \(-2\pi(ux_0/M+vy_0/N)\); rotate ↔ rotate</li>
+    <li>Phase = where edges are (swap experiment)</li>
     <li>Centre: \((-1)^{x+y}f\); show \(\log(1+|F|)\)</li>
   </ul>
 </div></section>
