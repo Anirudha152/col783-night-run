@@ -1,0 +1,103 @@
+<article class="chapter" data-id="cnn" data-title="Neural networks and CNNs" data-tag="post">
+<header class="ch-head">
+  <h1>Neural networks and CNNs</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 26</span></div>
+</header>
+
+<section class="slide">
+  <h3>One neuron, then layers</h3>
+  <p>A neuron takes inputs \(x_1..x_n\), forms a weighted sum, and applies an activation \(h\):</p>
+  \[ z = w^T x + b, \qquad a = h(z) \]
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":200,"h":120,"x":[-6,6],"y":[-1.1,1.1],"curves":[{"f":"tanh(x)","c":1,"t":"tanh","tx":3}]}'></svg><div class="cap">tanh / sigmoid: smooth squash</div></div>
+    <div><svg class="plot" data-plot='{"w":200,"h":120,"x":[-6,6],"y":[-1.1,6],"curves":[{"f":"max(0,x)","c":2,"t":"ReLU","tx":3.5}]}'></svg><div class="cap">ReLU: max(0, z)</div></div>
+  </figure>
+  <p>A layer does many neurons at once: \(a^l = h(W^l a^{l-1} + b^l)\). Stack layers: \(a^0 = x\), output \(y = a^L\).</p>
+  <div class="note"><b>Why activations matter.</b> Without \(h\), the whole network collapses to one linear map: \(y = W^L \cdots W^1 x + b'\). Depth would add nothing.</div>
+</section>
+
+<section class="slide">
+  <h3>Learning by gradient descent</h3>
+  <p>Define a loss \(\mathcal L\) (how wrong the outputs are). Nudge every weight downhill:</p>
+  \[ W^l \leftarrow W^l - \alpha\frac{\partial\mathcal L}{\partial W^l}, \qquad b^l \leftarrow b^l - \alpha\frac{\partial\mathcal L}{\partial b^l} \]
+  <p>\(\alpha\) = learning rate. The gradients are computed efficiently by <strong>backpropagation</strong> (chain rule, from the output layer back to the input).</p>
+</section>
+
+<section class="slide">
+  <h3>Convolutional layers</h3>
+  <p>A fully connected layer on an image has a weight for every (input pixel, output pixel) pair. Far too many, and it ignores that images are shift-invariant. A conv layer uses one small kernel everywhere:</p>
+  \[ a(i,j) = \sum_{c}\sum_{h,k} w(h,k,c)\;x(i+h, j+k, c) + b \]
+  <figure>
+    <svg class="fig" viewBox="0 0 540 150">
+      <g transform="translate(20,20)">
+        <rect x="16" y="0" width="100" height="100" class="fl"/><rect x="8" y="8" width="100" height="100" class="fr"/><rect x="0" y="16" width="100" height="100" class="fr" style="stroke:var(--line-2)"/>
+        <rect x="30" y="40" width="30" height="30" class="soft1" style="stroke:var(--safe)"/>
+        <text x="50" y="132" class="mid sm">input C × H × W</text>
+      </g>
+      <g class="c1 thin"><path d="M80 75 L250 60"/><path d="M80 105 L250 70"/></g>
+      <g transform="translate(240,30)">
+        <rect x="0" y="0" width="90" height="90" class="fr" style="stroke:var(--line-2)"/>
+        <rect x="10" y="25" width="10" height="10" class="f1"/>
+        <text x="45" y="112" class="mid sm">one output channel</text>
+      </g>
+      <text x="370" y="50">kernel w: C × K × K</text>
+      <text x="370" y="72">C_o kernels → C_o channels</text>
+      <text x="370" y="94">weights: C_o · C_i · K² + C_o</text>
+      <text x="370" y="116">same weights at every (i, j)</text>
+    </svg>
+  </figure>
+  <ul>
+    <li><strong>Translation equivariant</strong>: shift the input, the feature map shifts the same way.</li>
+    <li><strong>Parameter count</strong>: \(C_o \times C_i \times K \times K\) weights + \(C_o\) biases. Independent of image size.</li>
+    <li>(Like most deep learning code, this is really correlation, not convolution.)</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Pooling, receptive field, architectures</h3>
+  <ul>
+    <li><strong>Pooling</strong> (max or average over 2 × 2, stride 2) halves the resolution. Builds some shift invariance and grows the receptive field.</li>
+    <li><strong>Receptive field</strong>: the input region that affects one output. Each 3 × 3 conv adds 2 pixels; each 2× pooling doubles the growth rate.</li>
+    <li>Early layers learn edge/colour detectors; deeper layers learn parts and objects.</li>
+  </ul>
+  <table>
+    <tr><th>Network</th><th>Idea</th></tr>
+    <tr><td>LeNet (1998)</td><td>small conv + pool, digits</td></tr>
+    <tr><td>AlexNet (2012)</td><td>8 layers, GPUs, ReLU: ImageNet jump</td></tr>
+    <tr><td>VGG (2014)</td><td>only 3 × 3 convs, deep (16–19)</td></tr>
+    <tr><td>ResNet (2015)</td><td>skip connections, 152 layers</td></tr>
+    <tr><td>U-Net (2015)</td><td>encoder-decoder + skips: per-pixel segmentation</td></tr>
+  </table>
+  <p><strong>Classification</strong>: image → one label (shrink to a vector). <strong>Segmentation</strong>: image → label per pixel (\(C_i\times H\times W \to C_o \times H\times W\)), e.g. U-Net, fully convolutional nets.</p>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">A conv layer maps a 3 × 256 × 256 image to 64 channels with 5 × 5 kernels. How many parameters? Compare with a fully connected layer producing 64 × 256 × 256 outputs.</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Conv: \(64\times3\times5\times5 + 64 = 4864\). Fully connected: \((3\cdot256^2)\times(64\cdot256^2) \approx 8.2\times10^{11}\) weights. Conv shares weights across positions.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Show that a network of linear layers without activations is just one linear layer.</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(a^2 = W^2(W^1x + b^1) + b^2 = (W^2W^1)x + (W^2b^1 + b^2)\). By induction, any depth gives \(Wx + b\).</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Three stacked 3 × 3 conv layers (stride 1, no pooling). What is the receptive field of one output pixel?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Each layer adds 2: 3 → 5 → 7. So 7 × 7. (Same as one 7 × 7 layer, but fewer weights: \(3\cdot9C^2 = 27C^2\) vs \(49C^2\).)</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · CNNs</h3>
+  <ul>
+    <li>\(z = w^Tx + b\), \(a = h(z)\); layer \(a^l = h(W^la^{l-1}+b^l)\)</li>
+    <li>No activation → whole net is linear</li>
+    <li><b>GD</b>: \(W \leftarrow W - \alpha\,\partial\mathcal L/\partial W\); backprop = chain rule</li>
+    <li><b>Conv params</b>: \(C_oC_iK^2 + C_o\)</li>
+    <li>Conv = shared weights → translation equivariant</li>
+    <li><b>Pool</b> 2×2: halve size, grow receptive field</li>
+    <li>n stacked 3×3 → RF \(2n+1\)</li>
+    <li>VGG 3×3 · ResNet skips · U-Net per-pixel</li>
+  </ul>
+</div></section>
+</article>

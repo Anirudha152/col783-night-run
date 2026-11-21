@@ -1,0 +1,116 @@
+<article class="chapter" data-id="features" data-title="Corners and MSER" data-tag="post">
+<header class="ch-head">
+  <h1>Feature extraction: corners and MSER</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 24</span></div>
+</header>
+
+<section class="slide">
+  <h3>Invariant vs equivariant</h3>
+  <p>A feature is a number (or point) computed from the image. When the image changes (moved, rotated, scaled, relit):</p>
+  <ul>
+    <li><strong>Invariant</strong>: the feature's value does not change. (Area of a region under translation.)</li>
+    <li><strong>Equivariant / covariant</strong>: the feature changes in the <em>same</em> way. (A corner's position moves with the image. Perimeter scales with the image.)</li>
+  </ul>
+  <p>For matching images we want keypoints that are <strong>equivariant to geometry</strong> and <strong>invariant to lighting</strong>, and that are <strong>repeatable</strong> (found again) and <strong>distinctive</strong> (not confused with neighbours).</p>
+</section>
+
+<section class="slide">
+  <h3>Flat, edge, corner</h3>
+  <p>Shift a small window by \(v = (\Delta x, \Delta y)\). How much does it change?</p>
+  \[ C(v) = \sum_{s,t} w(s,t)\,\big(f(s+\Delta x, t+\Delta y) - f(s,t)\big)^2 \approx v^T M v \]
+  \[ M = \sum_{s,t} w(s,t)\begin{bmatrix} f_x^2 & f_xf_y \\ f_xf_y & f_y^2\end{bmatrix} \]
+  <p>\(M\) is the <strong>structure tensor</strong> (Harris matrix). A good feature changes a lot for <em>every</em> shift direction: <strong>both eigenvalues of M are large</strong>.</p>
+  <figure class="row">
+    <div>
+      <svg class="fig" viewBox="0 0 240 200">
+        <line x1="30" y1="180" x2="230" y2="180" class="ax"/><line x1="30" y1="180" x2="30" y2="10" class="ax"/>
+        <text x="225" y="196" class="sm">λ₁</text><text x="10" y="16" class="sm">λ₂</text>
+        <path d="M30 180 L80 180 L30 130 Z" class="soft2"/>
+        <path d="M100 180 L230 180 L230 130 L120 160 Z" class="soft3"/><path d="M30 110 L30 10 L80 10 L50 120 Z" class="soft3"/>
+        <path d="M120 110 L230 60 L230 10 L90 10 L90 80 Z" class="soft1"/>
+        <text x="42" y="172" class="sm lbl2 b">flat</text>
+        <text x="160" y="172" class="sm lbl3 b">edge</text><text x="36" y="60" class="sm lbl3 b">edge</text>
+        <text x="150" y="60" class="sm lbl1 b">corner</text>
+      </svg>
+    </div>
+    <div>
+      <ul>
+        <li>Both small: <strong>flat</strong>. Any shift looks the same.</li>
+        <li>One large: <strong>edge</strong>. Sliding along the edge changes nothing.</li>
+        <li>Both large: <strong>corner</strong>. Every shift is noticed.</li>
+      </ul>
+      <p>\(\lambda_{\min}\|v\|^2 \le v^TMv \le \lambda_{\max}\|v\|^2\).</p>
+    </div>
+  </figure>
+</section>
+
+<section class="slide">
+  <h3>Harris–Stephens and Shi–Tomasi</h3>
+  \[ R = \det M - k\,(\operatorname{tr} M)^2 = \lambda_1\lambda_2 - k(\lambda_1+\lambda_2)^2, \quad k \approx 0.04 \]
+  \[ \text{Shi–Tomasi: } \lambda_{\min}(M) \]
+  <p>Corners = local maxima of the cornerness above a threshold. Harris avoids computing eigenvalues.</p>
+  <h4>Worked example</h4>
+  <p>\(M = \begin{bmatrix}8 & 2\\2 & 6\end{bmatrix}\): det = 48 − 4 = 44, tr = 14. \(R = 44 - 0.04\cdot196 = 36.2\) → corner.</p>
+  <p>Eigenvalues: \(\lambda = \frac{\text{tr}\pm\sqrt{\text{tr}^2 - 4\det}}{2} = \frac{14\pm\sqrt{20}}{2} = 9.24, 4.76\). Both big.</p>
+  <p>\(M = \begin{bmatrix}10 & 0\\0 & 0.2\end{bmatrix}\): det = 2, tr = 10.2, \(R = 2 - 4.16 &lt; 0\) → edge.</p>
+  <div class="note"><b>Sign of R.</b> R &gt; 0 large: corner. R &lt; 0: edge. |R| small: flat.</div>
+</section>
+
+<section class="slide">
+  <h3>What are Harris corners invariant to?</h3>
+  <table>
+    <tr><th>Change</th><th>Detected corners</th><th>Why</th></tr>
+    <tr><td>Translation</td><td>equivariant</td><td>M computed the same way everywhere</td></tr>
+    <tr><td>Rotation</td><td>equivariant</td><td>eigenvalues, det, tr don't change under rotation</td></tr>
+    <tr><td>Spatial scaling</td><td><strong>neither</strong></td><td>window size is fixed; a corner zoomed in looks like an edge</td></tr>
+    <tr><td>Offset \(f + b\)</td><td>invariant</td><td>gradients unchanged</td></tr>
+    <tr><td>Contrast \(a f\)</td><td>partly invariant</td><td>R scales by \(a^4\); maxima same, but the threshold cuts differently</td></tr>
+  </table>
+  <p>Textured regions have strong gradients in many directions, so cornerness is high all over them. Many "corners" there.</p>
+</section>
+
+<section class="slide">
+  <h3>MSER: maximally stable extremal regions</h3>
+  <ul>
+    <li>Threshold the image at every level \(T\): \(\{f \ge T\}\) (and the inverse for dark regions).</li>
+    <li><strong>Extremal region</strong> = a connected component of a thresholded image.</li>
+    <li>As \(T\) changes, a region grows/shrinks. It is <strong>maximally stable</strong> when its area barely changes:</li>
+  </ul>
+  \[ \text{local min of } \frac{A(T+\Delta T) - A(T-\Delta T)}{A(T)} \]
+  <figure>
+    <svg class="plot" data-plot='{"w":440,"h":130,"x":[0,255],"y":[0,1.1],"xl":"T","yl":"area","curves":[{"f":"x<80?1-x/300:(x<170?0.733-0.03*(x-80)/90:0.703-0.6*(x-170)/85)","c":1}],"marks":[{"x":125,"t":"flat stretch = stable region"}]}'></svg>
+  </figure>
+  <p>Invariances: equivariant to translation, rotation and scaling (regions transform with the image); invariant to intensity offset and contrast scaling (any increasing intensity change just relabels thresholds).</p>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">Inside a window all gradients are \((f_x, f_y) = (3, 0)\) at 10 pixels (w = 1). Compute M and classify.</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(M = 10\begin{bmatrix}9&0\\0&0\end{bmatrix} = \begin{bmatrix}90&0\\0&0\end{bmatrix}\). Eigenvalues 90, 0 → edge (vertical edge, gradient along x). \(R = 0 - 0.04\cdot 8100 &lt; 0\).</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Are MSERs invariant to adding Gaussian noise? Compare with watershed regions.</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Not invariant, but fairly robust: MSER keeps only regions stable over a range of thresholds, so small noise does not change them much. Watershed creates a basin for every local minimum, so noise causes many spurious regions (over-segmentation). Both are built from level sets / connected components of thresholds.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Image intensity is doubled (\(f\to 2f\)). Do the Harris corners change?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>M scales by 4, so R scales by 16. Locations of local maxima stay the same, but with a fixed threshold more points pass. Partially invariant.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · corners, MSER</h3>
+  <ul>
+    <li><b>Invariant</b>: value fixed. <b>Equivariant</b>: transforms along</li>
+    <li>\(C(v)\approx v^TMv\), \(M=\sum w\,\nabla f\nabla f^T\)</li>
+    <li>λ both small flat · one big edge · both big corner</li>
+    <li><b>Harris</b> \(R=\det M - k\,\text{tr}^2\), \(k\approx0.04\)</li>
+    <li><b>Shi–Tomasi</b> \(\lambda_{\min}\)</li>
+    <li>\(\lambda = (\text{tr}\pm\sqrt{\text{tr}^2-4\det})/2\)</li>
+    <li>Harris: equiv. translation, rotation; <b>not scale</b>; inv. offset; partly contrast</li>
+    <li><b>MSER</b>: CC of thresholds; min of \(\frac{A(T+\Delta)-A(T-\Delta)}{A(T)}\)</li>
+    <li>MSER: equiv. geometry incl. scale; inv. monotone intensity</li>
+  </ul>
+</div></section>
+</article>

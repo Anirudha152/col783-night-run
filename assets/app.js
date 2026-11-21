@@ -95,7 +95,11 @@
   const byId = Object.fromEntries(chapters.map((c) => [c.dataset.id, c]));
   const defaultOrder = chapters.map((c) => c.dataset.id);
   let order = store.get('order', defaultOrder).filter((id) => byId[id]);
-  defaultOrder.forEach((id) => { if (!order.includes(id)) order.push(id); });
+  defaultOrder.forEach((id, i) => {
+    if (order.includes(id)) return;
+    const prev = defaultOrder.slice(0, i).reverse().find((p) => order.includes(p));
+    order.splice(prev ? order.indexOf(prev) + 1 : 0, 0, id);
+  });
   let done = store.get('done', {});
   const slidesOf = (id) => $$('section.slide', byId[id]);
 
