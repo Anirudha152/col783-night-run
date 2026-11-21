@@ -85,13 +85,24 @@
 <section class="slide">
   <h3>Gray reconstruction, h-maxima, granulometry</h3>
   <ul>
-    <li><strong>Geodesic dilation</strong>: \(D_g(f) = (f \oplus b) \wedge g\) (\(\wedge\) = pointwise min). Repeat until stable. Grows bright regions of \(f\) but never above \(g\).</li>
+    <li><strong>Geodesic dilation</strong>: \(D_g(f) = (f \oplus b) \wedge g\) (\(\wedge\) = pointwise min). Repeat until stable. Grows bright regions of \(f\) but never above \(g\). <em>Pointwise min</em> = at each pixel, keep the smaller of the two values: \((a \wedge g)[x] = \min(a[x], g[x])\). It is the gray version of \(\cap\) in binary reconstruction: \(g\) is a ceiling.</li>
     <li><strong>Opening by reconstruction</strong>: \(R_f(f \ominus b)\). Removes small bright objects but rebuilds big ones exactly.</li>
     <li><strong>h-maxima</strong>: \(R_f(f - h)\). Removes peaks less than \(h\) high above their surroundings.</li>
     <li><strong>h-domes</strong>: \(f - R_f(f-h)\). The peak tops that were cut off. Good blob detector.</li>
     <li><strong>Regional maxima</strong>: flat connected regions whose neighbours are all lower.</li>
     <li><strong>Gray granulometry</strong>: open with growing SEs, track \(\sum f\). Works without thresholding.</li>
   </ul>
+  <h4>Worked example (width-3 SE)</h4>
+  <div class="tbl-wrap"><table class="mono">
+    <tr><th>mask g</th><td>3</td><td>8</td><td>8</td><td>2</td><td>6</td><td>6</td></tr>
+    <tr><th>marker f</th><td>0</td><td>5</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><th>f ⊕ b</th><td>5</td><td>5</td><td>5</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><th>∧ g (step 1)</th><td>3</td><td>5</td><td>5</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><th>step 2</th><td>3</td><td>5</td><td>5</td><td>2</td><td>0</td><td>0</td></tr>
+    <tr><th>step 3</th><td>3</td><td>5</td><td>5</td><td>2</td><td>2</td><td>0</td></tr>
+    <tr><th>step 4 = final</th><td>3</td><td>5</td><td>5</td><td>2</td><td>2</td><td>2</td></tr>
+  </table></div>
+  <p>The 5 spreads like water, but the min with \(g\) cuts it down wherever \(g\) is lower: to 3 at the left, and to 2 at the valley. Past the valley it can only reach 2, even though \(g\) is 6 there.</p>
   <figure>
     <svg class="plot" data-plot='{"w":520,"h":130,"x":[0,10],"y":[0,1.1],"curves":[{"f":"0.3+0.25*exp(-pow((x-2.5)/0.6,2))+0.55*exp(-pow((x-6.5)/0.8,2))","c":0,"t":"f","tx":0.2},{"f":"0.3+max(0,0.55*exp(-pow((x-6.5)/0.8,2))-0.3)","c":2,"dash":true,"t":"R_f(f − h)","tx":8.6,"tdy":-10}],"text":[{"x":1.6,"y":0.68,"t":"peak lower than h: flattened","cl":"sm"},{"x":5.2,"y":0.98,"t":"tall peak: lowered by h","cl":"sm"}]}'></svg>
   </figure>
