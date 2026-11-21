@@ -1,0 +1,125 @@
+<article class="chapter" data-id="spatial" data-title="Spatial filters" data-tag="pre">
+<header class="ch-head">
+  <h1>Spatial filters: smoothing and sharpening</h1>
+  <div class="ch-meta"><span>Pre-minor</span><span>Deck 04, 05 · Minor Q2</span></div>
+</header>
+
+<section class="slide">
+  <h3>Correlation and convolution</h3>
+  <p>A linear filter replaces each pixel by a weighted sum of its neighbours. The weights form the <strong>kernel</strong> \(w\).</p>
+  \[ \text{correlation: } (w\star f)(x) = \sum_s w(s)\,f(x+s) \qquad \text{convolution: } (w*f)(x) = \sum_s w(s)\,f(x-s) \]
+  <p>Convolution = correlation with a flipped kernel. For symmetric kernels they are the same.</p>
+  <h4>Impulse test</h4>
+  <table class="mono">
+    <tr><th>f</th><td>0 0 0 1 0 0 0 0</td></tr>
+    <tr><th>w</th><td>1 2 4 2 8</td></tr>
+    <tr><th>correlation</th><td>0 8 2 4 2 1 0 0</td></tr>
+    <tr><th>convolution</th><td>0 1 2 4 2 8 0 0</td></tr>
+  </table>
+  <p>Convolving with an impulse gives back a copy of the kernel. Correlation gives a <em>flipped</em> copy.</p>
+  <ul>
+    <li>Convolution is commutative, associative, distributive. Correlation is not commutative or associative.</li>
+    <li>Big kernel \(m\times n\) on an \(M\times N\) image: \(O(MNmn)\). If <strong>separable</strong> (\(w = u v^T\)), do rows then columns: \(O(MN(m+n))\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Smoothing: box, Gaussian, median</h3>
+  <ul>
+    <li><strong>Box (mean)</strong>: all weights \(1/mn\). Simple but makes blocky artefacts.</li>
+    <li><strong>Gaussian</strong>: weights \(\propto e^{-(s^2+t^2)/2\sigma^2}\). Smooth, separable. Use kernel width ≈ \(6\sigma\).</li>
+    <li><strong>Median</strong>: sort the window, take the middle. <em>Nonlinear</em>. Best for salt-and-pepper noise. Keeps edges sharp but rounds corners.</li>
+    <li><strong>Min / max</strong>: also order-statistic filters. (They are gray erosion / dilation.)</li>
+  </ul>
+  <div class="grids">
+    <div><div class="grid num" data-grid="10 10 10/10 255* 10/10 10 12"></div><span class="cap">window with salt</span></div>
+    <div style="text-align:left;font-size:15px">mean ≈ 37 (smeared)<br>median = 10 (fixed)</div>
+  </div>
+  <p>Mean of \(mn\) noisy values cuts noise variance by \(mn\) (if the region is truly flat).</p>
+</section>
+
+<section class="slide">
+  <h3>Bilateral filter: smooth but keep edges</h3>
+  \[ g(p) = \frac{1}{W(p)}\sum_q G_s(\|p-q\|)\;G_r(|f(p)-f(q)|)\;f(q) \]
+  <ul>
+    <li>\(G_s\): spatial Gaussian. Near pixels count more.</li>
+    <li>\(G_r\): range Gaussian. Pixels with <em>similar intensity</em> count more.</li>
+    <li>\(W(p)\) = sum of all weights, so they add to 1.</li>
+  </ul>
+  <p>Across an edge the intensity jumps, so \(G_r \approx 0\) and those pixels are ignored. Result: flat areas get smoothed, edges stay sharp.</p>
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":130,"x":[0,10],"y":[0,1.1],"curves":[{"f":"(x<5?0.25:0.8)+0.06*sin(x*13)+0.04*sin(x*29)","c":0,"thin":true,"n":900,"t":"noisy f","tx":0.1},{"f":"0.25+0.55/(1+exp(-(x-5)*1.6))","c":2,"dash":true,"t":"Gaussian","tx":5.6,"tdx":8,"tdy":10},{"f":"x<5?0.25:0.8","c":1,"n":900,"t":"bilateral","tx":7.5,"tdy":-10}]}'></svg>
+  </figure>
+  <ul>
+    <li>Not linear: weights depend on the image itself.</li>
+    <li><strong>Cross (joint) bilateral</strong>: take \(G_r\) from a flash photo (clean edges) but average the no-flash photo.</li>
+    <li>HDR tone mapping: split \(f = \) base (bilateral) + detail, compress only the base.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Derivatives and sharpening</h3>
+  \[ f'(x) \approx f(x+1)-f(x), \qquad f''(x) \approx f(x+1) - 2f(x) + f(x-1) \]
+  <div class="grids">
+    <div><div class="grid num" data-grid="0 1 0/1 -4 1/0 1 0"></div><span class="cap">Laplacian ∇²</span></div>
+    <div><div class="grid num" data-grid="0 -1 0/-1 5 -1/0 -1 0"></div><span class="cap">sharpen: f − ∇²f</span></div>
+    <div><div class="grid num" data-grid="-1 0 1/-2 0 2/-1 0 1"></div><span class="cap">Sobel ∂/∂x</span></div>
+  </div>
+  <ul>
+    <li><strong>Laplacian sharpening</strong>: \(g = f - c\,\nabla^2 f\) (with the −4 centre kernel). Adds back edges.</li>
+    <li><strong>Unsharp masking</strong>: \(g = f + k\,(f - f_{\text{blur}})\). \(k = 1\) unsharp, \(k > 1\) high-boost.</li>
+    <li><strong>Gradient magnitude</strong> \(\sqrt{f_x^2 + f_y^2}\) for edges (more in the edge chapter).</li>
+  </ul>
+  <p>Derivative kernels sum to 0 (flat input → 0 output). Smoothing kernels sum to 1 (flat input unchanged).</p>
+</section>
+
+<section class="slide">
+  <h3>Template matching</h3>
+  <p>Find where a small template \(w\) appears in image \(f\).</p>
+  <ul>
+    <li>Plain correlation \(\sum w f\): fooled by bright regions.</li>
+    <li>SSD \(\sum (w - f)^2\): fooled by lighting changes.</li>
+    <li><strong>Normalized cross-correlation</strong> (subtract means, divide by norms). Invariant to brightness offset and contrast scale. Peak = match.</li>
+  </ul>
+  \[ g(x) = \frac{\sum_s (w(s)-\bar w)(f(x+s)-\bar f_x)}{\sqrt{\sum_s (w(s)-\bar w)^2\,\sum_s (f(x+s)-\bar f_x)^2}} \]
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text"><span class="q-src">Minor Q2 style</span>A portrait app should smooth skin blemishes but keep the eyes, lips and hair edges sharp, changing only intensity and not chromaticity. Then: what if the hair is blonde, with the same intensity as skin?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Convert to a space that separates intensity from chromaticity (YCbCr or HSI). Apply a bilateral filter to the intensity channel only: spatial Gaussian ≈ blemish size, range σ small enough that edges (eyes, lips) are not crossed.</p>
+      <p>Blonde hair: intensity does not separate hair from skin, so the range term would blur them together. Fix: compute the range weight from <em>colour</em> difference (e.g. distance in CbCr / hue, or full colour), but still only average the intensity channel. That is a cross/joint bilateral filter guided by chromaticity.</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text"><span class="q-src">Minor Q2(c) style</span>Dim photos have the same background as a well-lit reference. Fix their intensities automatically. What if backgrounds have different colours?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Histogram matching (specification) of the intensity channel to the reference: \(s = G^{-1}(T(r))\) where \(T, G\) are the CDFs. Since content is similar, the histograms should match.</p>
+      <p>If backgrounds differ, the histograms differ for reasons other than lighting. Then estimate the lighting from a region whose true appearance is known (e.g. the subject, or a gray patch), or fit a simple gain/offset \(s = ar + b\) using only matched regions.</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Is the median filter linear? Prove it.</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>No. Take windows \(f = [0,0,1]\) and \(g = [0,1,0]\). median(f) = 0, median(g) = 0, but median(f+g) = median([0,1,1]) = 1 ≠ 0.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · spatial filters</h3>
+  <ul>
+    <li><b>Corr</b> \(\sum w(s)f(x+s)\); <b>conv</b> \(\sum w(s)f(x-s)\)</li>
+    <li>Conv with impulse = kernel; corr = flipped kernel</li>
+    <li><b>Separable</b>: \(O(MN(m+n))\) instead of \(O(MNmn)\)</li>
+    <li><b>Gaussian</b> width ≈ 6σ; smoothing kernels sum to 1</li>
+    <li><b>Median</b>: salt &amp; pepper; nonlinear</li>
+    <li><b>Bilateral</b> \(\frac1W\sum G_s G_r(f_p - f_q) f_q\)</li>
+    <li><b>Laplacian</b> [0 1 0; 1 −4 1; 0 1 0]; sharpen \(f - \nabla^2 f\)</li>
+    <li><b>Unsharp</b> \(f + k(f - f_{\text{blur}})\)</li>
+    <li><b>Sobel x</b> [−1 0 1; −2 0 2; −1 0 1]</li>
+    <li><b>NCC</b>: subtract means, divide norms</li>
+    <li><b>Hist. matching</b> \(s = G^{-1}(T(r))\)</li>
+  </ul>
+</div></section>
+</article>

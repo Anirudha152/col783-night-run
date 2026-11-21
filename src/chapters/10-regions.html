@@ -1,0 +1,137 @@
+<article class="chapter" data-id="regions" data-title="Thresholding, Otsu, k-means" data-tag="post">
+<header class="ch-head">
+  <h1>Region segmentation: thresholds and clusters</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 22</span></div>
+</header>
+
+<section class="slide">
+  <h3>Segmentation = labelling every pixel</h3>
+  <p>Split the M × N pixels into classes, usually foreground \(C_1\) and background \(C_2\). Edge detection looks for <em>differences</em>; region segmentation looks for <em>similarity</em>.</p>
+  <p>If we know each class's intensity distribution \(p_1(z), p_2(z)\), give a pixel with value \(z\) to the class with the larger likelihood \(p_i(z)\). This is <strong>maximum likelihood</strong> classification.</p>
+  <figure>
+    <svg class="plot" data-plot='{"w":440,"h":130,"x":[0,1],"y":[0,1.1],"xl":"z","curves":[{"f":"exp(-pow((x-0.3)/0.1,2))","c":2,"t":"p₁","tx":0.3,"tdy":-6},{"f":"0.8*exp(-pow((x-0.68)/0.13,2))","c":1,"t":"p₂","tx":0.68}],"marks":[{"x":0.475,"t":"T: where curves cross"}]}'></svg>
+  </figure>
+  <h4>Thresholding</h4>
+  <ul>
+    <li><strong>Global</strong>: one \(T\) for the whole image. \(g = 1\) if \(f > T\).</li>
+    <li><strong>Multiple</strong>: \(T_1 &lt; T_2\) give 3 classes.</li>
+    <li><strong>Variable / local</strong>: \(T(x,y)\) from the local mean and std, e.g. \(T = m(x,y) + k\,\sigma(x,y)\). Handles uneven lighting.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Otsu's method: pick T automatically</h3>
+  <p>Good split: each class is tight (small variances) and the classes are far apart. For threshold \(k\):</p>
+  \[ P_1 = \sum_{i\le k} p_i,\quad m_1 = \frac{1}{P_1}\sum_{i\le k} i\,p_i,\quad m_2 = \frac{1}{P_2}\sum_{i>k} i\,p_i \]
+  \[ \sigma_B^2 = P_1(m_1 - m_G)^2 + P_2(m_2-m_G)^2 = P_1P_2(m_1 - m_2)^2 \]
+  <ul>
+    <li>Total variance = between-class + within-class: \(\sigma_G^2 = \sigma_B^2 + \sigma_W^2\). \(\sigma_G^2\) is fixed.</li>
+    <li>So <strong>maximize</strong> \(\sigma_B^2\) ⇔ <strong>minimize</strong> \(\sigma_W^2 = P_1\sigma_1^2 + P_2\sigma_2^2\).</li>
+    <li>Try every \(k\), keep the best. Fast with running sums of \(P_1(k)\) and \(\sum i p_i\).</li>
+    <li>Separability \(\eta = \sigma_B^2/\sigma_G^2 \in [0,1]\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Otsu worked example</h3>
+  <p>Levels 0–3 with \(p = [0.3, 0.2, 0.1, 0.4]\). \(m_G = 0.2 + 0.2 + 1.2 = 1.6\).</p>
+  <table class="mono">
+    <tr><th>k</th><th>P₁</th><th>m₁</th><th>P₂</th><th>m₂</th><th>σ²_B = P₁P₂(m₁−m₂)²</th></tr>
+    <tr><td>0</td><td>.3</td><td>0</td><td>.7</td><td>2.29</td><td>.21 × 5.22 = 1.10</td></tr>
+    <tr><td>1</td><td>.5</td><td>0.4</td><td>.5</td><td>2.8</td><td>.25 × 5.76 = <b>1.44</b></td></tr>
+    <tr><td>2</td><td>.6</td><td>0.67</td><td>.4</td><td>3</td><td>.24 × 5.44 = 1.31</td></tr>
+  </table>
+  <p>Best \(k = 1\): levels {0, 1} vs {2, 3}.</p>
+  <div class="note"><b>Edge trick.</b> If the object is tiny, its histogram peak is invisible. Run Otsu only on pixels near strong edges (high gradient or |Laplacian|). Then both classes are equally represented.</div>
+  <p><strong>Multiple thresholds</strong>: maximize \(\sum_k P_k (m_k - m_G)^2\) over all choices of \(k_1 &lt; k_2 &lt; \dots\)</p>
+</section>
+
+<section class="slide">
+  <h3>k-means clustering</h3>
+  <p>Treat each pixel's value (or colour) as a point \(z_i\). Find \(k\) means minimizing the within-cluster sum of squares:</p>
+  \[ \text{WCSS} = \sum_{i=1}^{n}\|z_i - m_{a_i}\|^2 \]
+  <ol>
+    <li>Guess means \(m_1, \dots, m_k\).</li>
+    <li>Assign each point to its nearest mean.</li>
+    <li>Move each mean to the average of its points.</li>
+    <li>Repeat 2–3 until the means stop moving.</li>
+  </ol>
+  <figure>
+    <svg class="fig" viewBox="0 0 520 140">
+      <g class="f2"><circle cx="60" cy="50" r="4"/><circle cx="80" cy="70" r="4"/><circle cx="50" cy="80" r="4"/><circle cx="90" cy="45" r="4"/><circle cx="70" cy="95" r="4"/><circle cx="100" cy="85" r="4"/></g>
+      <g class="f1"><circle cx="190" cy="60" r="4"/><circle cx="210" cy="40" r="4"/><circle cx="220" cy="75" r="4"/><circle cx="200" cy="90" r="4"/><circle cx="235" cy="55" r="4"/></g>
+      <path d="M75 70 m-7 0 h14 m-7 -7 v14" class="c0"/><path d="M211 64 m-7 0 h14 m-7 -7 v14" class="c0"/>
+      <line x1="145" y1="15" x2="145" y2="120" class="ax dash"/>
+      <text x="145" y="135" class="mid sm">boundary = equal distance to both means</text>
+      <text x="300" y="50">· global optimum is NP-hard</text>
+      <text x="300" y="72">· depends on the starting guess</text>
+      <text x="300" y="94">· assumes round, equal-size clusters</text>
+    </svg>
+  </figure>
+  <ul>
+    <li>k-means = maximum likelihood if clusters are Gaussians with equal variance (log-likelihood ∝ −WCSS).</li>
+    <li>For gray images with k = 2, k-means and Otsu minimize the <em>same</em> thing (WCSS ∝ \(\sigma_W^2\)). Otsu finds the global optimum by trying all k. k-means can get stuck in a local minimum, but it extends easily to colour and many clusters.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Superpixels with SLIC</h3>
+  <p>k-means on <strong>position + colour</strong>: \(z_i = [x, y, r, g, b]\). Clusters become small compact patches that follow edges.</p>
+  <ol>
+    <li>Seed centres on a grid with spacing \(s\). Nudge each to the lowest-gradient pixel in its 3 × 3 neighbourhood (so seeds do not sit on edges).</li>
+    <li>Assign each pixel to the nearest centre, searching only centres within a \(2s \times 2s\) window. (This makes it fast: \(O(N)\).)</li>
+    <li>Update centres, repeat.</li>
+  </ol>
+  \[ D = \sqrt{(d_c/c)^2 + (d_s/s)^2} \]
+  <p>\(d_c\) = colour distance, \(d_s\) = pixel distance. \(c\) trades off compactness vs. sticking to colour. Superpixels give a small over-segmentation to feed into k-means, graph cuts, etc.</p>
+</section>
+
+<section class="slide">
+  <h3>Intelligent scissors</h3>
+  <p>The user clicks a seed point. As the mouse moves, the tool draws the <strong>shortest path</strong> from seed to mouse through a graph of pixels (8 neighbours each). Dijkstra makes it fast.</p>
+  <p>Edge weights must be <em>low along image edges</em>:</p>
+  \[ w(p,q) = \lambda_Z w_Z(q) + \lambda_G w_G(q) + \lambda_D w_D(p,q) \]
+  <ul>
+    <li>\(w_Z = 0\) if \(q\) is a Laplacian zero crossing (on an edge), else 1.</li>
+    <li>\(w_G\) small when \(\|\nabla f(q)\|\) is large.</li>
+    <li>\(w_D\) small when the step \(p\to q\) runs along the edge (perpendicular to both gradients), and the gradients agree. Smooth paths.</li>
+  </ul>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">Histogram over levels 0–3: \(p = [0.4, 0.1, 0.1, 0.4]\). Find Otsu's threshold.</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>\(m_G = 0.1 + 0.2 + 1.2 = 1.5\).</p>
+      <p>k=0: P₁=.4, m₁=0, m₂=1.5/.6=2.5 → .24 × 6.25 = 1.5.</p>
+      <p>k=1: P₁=.5, m₁=.2, m₂=2.8 → .25 × 6.76 = <b>1.69</b>.</p>
+      <p>k=2: P₁=.6, m₁=.3/.6=.5, m₂=3 → .24 × 6.25 = 1.5.</p>
+      <p>\(k = 1\): {0,1} vs {2,3}. (Symmetric histogram, symmetric answer.)</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Give a case where k-means with k = 2 on intensity fails, but Otsu works.</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Bad initialization: if both initial means start inside the same mode (e.g. both in the background), k-means can converge to splitting the background into two and lumping the object with one half. Otsu checks every threshold, so it always finds the global best.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why does SLIC only search a \(2s\times 2s\) window?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Centres are about \(s\) apart, so a pixel's nearest centre must be within about \(s\) in each direction. Limiting the search makes each iteration \(O(N)\) instead of \(O(Nk)\), and keeps superpixels compact.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · region segmentation</h3>
+  <ul>
+    <li><b>ML</b>: pick class with max \(p_i(z)\)</li>
+    <li><b>Local T</b>: \(m(x,y) + k\sigma(x,y)\)</li>
+    <li>\(P_1 = \sum_{i\le k}p_i\), \(m_1 = \frac{1}{P_1}\sum_{i\le k} i p_i\)</li>
+    <li>\(\sigma_B^2 = P_1P_2(m_1-m_2)^2\) → max over k</li>
+    <li>\(\sigma_G^2 = \sigma_B^2 + \sigma_W^2\); \(\eta = \sigma_B^2/\sigma_G^2\)</li>
+    <li><b>k-means</b>: assign nearest → recompute means; local min</li>
+    <li>k-means(k=2, gray) ≡ Otsu objective; Otsu = global</li>
+    <li><b>SLIC</b>: \([x,y,r,g,b]\), \(D = \sqrt{(d_c/c)^2+(d_s/s)^2}\), 2s×2s</li>
+    <li><b>Scissors</b>: Dijkstra; cost low on zero-crossings, high gradient</li>
+  </ul>
+</div></section>
+</article>

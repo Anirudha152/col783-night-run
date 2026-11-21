@@ -1,0 +1,125 @@
+<article class="chapter" data-id="graymorph" data-title="Grayscale morphology" data-tag="post">
+<header class="ch-head">
+  <h1>Grayscale morphology</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 14 · Quiz 3 Q2</span></div>
+</header>
+
+<section class="slide">
+  <h3>Erosion = min, dilation = max</h3>
+  <p>For a gray image \(f\) and a <em>flat</em> SE \(b\) (just a set of offsets):</p>
+  \[ (f \ominus b)[x,y] = \min_{(s,t)\in b} f[x+s, y+t] \qquad (f \oplus b)[x,y] = \max_{(s,t)\in b} f[x-s, y-t] \]
+  <p>So erosion is a <strong>min filter</strong> and dilation is a <strong>max filter</strong>. Erosion makes bright regions shrink and dark regions grow.</p>
+  <h4>1D example, SE width 3</h4>
+  <div class="tbl-wrap"><table class="mono">
+    <tr><th>f</th><td>2</td><td>2</td><td>5</td><td>9</td><td>9</td><td>3</td><td>3</td><td>8</td><td>2</td><td>2</td></tr>
+    <tr><th>f ⊖ b (min)</th><td>2</td><td>2</td><td>2</td><td>5</td><td>3</td><td>3</td><td>3</td><td>2</td><td>2</td><td>2</td></tr>
+    <tr><th>f ⊕ b (max)</th><td>2</td><td>5</td><td>9</td><td>9</td><td>9</td><td>9</td><td>8</td><td>8</td><td>8</td><td>2</td></tr>
+    <tr><th>f ∘ b (open)</th><td>2</td><td>2</td><td>5</td><td>5</td><td>5</td><td>3</td><td>3</td><td>3</td><td>2</td><td>2</td></tr>
+    <tr><th>f • b (close)</th><td>2</td><td>2</td><td>5</td><td>9</td><td>9</td><td>8</td><td>8</td><td>8</td><td>2</td><td>2</td></tr>
+  </table></div>
+  <ul>
+    <li>Opening cut the narrow bright peaks (the "9 9" of width 2 and the "8" of width 1). Peaks narrower than \(b\) go.</li>
+    <li>Closing filled the narrow dark valley ("3 3" between 9 and 8). Valleys narrower than \(b\) go.</li>
+  </ul>
+  <div class="note"><b>Duality</b>: \(-(f\ominus b) = (-f)\oplus\hat b\). Negate, dilate, negate = erode.</div>
+</section>
+
+<section class="slide">
+  <h3>Two pictures that explain everything</h3>
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":150,"x":[0,10],"y":[0,1.1],"xl":"x","curves":[{"f":"0.35+0.08*sin(x*0.8)+(abs(x-3)<0.25?0.5:0)+(abs(x-7)<1.2?0.4:0)","c":0,"n":1200,"t":"f","tx":0.3},{"f":"0.35+0.08*sin(x*0.8)+(abs(x-7)<0.9?0.4:0)","c":1,"n":1200,"dash":true,"t":"f ∘ b","tx":8.3,"tdy":-14}],"marks":[{"x":3,"t":"thin peak: removed"},{"x":7,"t":"wide plateau: kept"}]}'></svg>
+    <figcaption>Opening = slide the SE up under the graph and keep the highest it can reach. It cannot enter peaks narrower than itself.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Threshold decomposition</strong>: slice \(f\) at every level \(k\): \(T_k = \{f \ge k\}\). Gray erosion = binary erosion of every slice, then stack them back.</li>
+    <li><strong>Hypograph</strong>: the set of points under the graph. Gray erosion/dilation = binary erosion/dilation of that 3D set.</li>
+  </ul>
+  <p>All binary properties carry over: \(f\circ b \le f \le f \bullet b\), monotone, idempotent, duality.</p>
+</section>
+
+<section class="slide">
+  <h3>Top-hat, bottom-hat, gradient</h3>
+  <table>
+    <tr><th>Operator</th><th>Formula</th><th>Picks out</th></tr>
+    <tr><td><strong>Top-hat</strong> (white)</td><td>\(f - (f\circ b)\)</td><td>small/thin <em>bright</em> things</td></tr>
+    <tr><td><strong>Bottom-hat</strong> (black)</td><td>\((f\bullet b) - f\)</td><td>small/thin <em>dark</em> things</td></tr>
+    <tr><td><strong>Gradient</strong></td><td>\((f\oplus b) - (f\ominus b)\)</td><td>edges</td></tr>
+    <tr><td><strong>Smoothing</strong></td><td>\((f\circ b)\bullet b\)</td><td>removes small bright and dark noise</td></tr>
+  </table>
+  <p>Why top-hat works: \(f \circ b\) removes the small bright things but keeps the slow background. Subtract it, and only the small bright things remain. This also <strong>corrects uneven lighting</strong>: the background becomes flat ≈ 0.</p>
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":140,"x":[0,10],"y":[0,1.1],"xl":"x","curves":[{"f":"0.2+0.05*x+(abs(x-2)<0.2||abs(x-5)<0.2||abs(x-8)<0.2?0.3:0)","c":0,"n":1500,"t":"f","tx":0.2},{"f":"0.2+0.05*x","c":2,"dash":true,"t":"f ∘ b","tx":9.2,"tdy":14},{"f":"(abs(x-2)<0.2||abs(x-5)<0.2||abs(x-8)<0.2?0.3:0)","c":1,"n":1500,"t":"top-hat","tx":9}]}'></svg>
+    <figcaption>Spots on a sloping background. Top-hat leaves equal-height spots on a flat zero background, so one threshold works.</figcaption>
+  </figure>
+  <p>Also: illumination estimate \(i = f \bullet b\) (for dark text on light page), reflectance \(r = f / i\).</p>
+</section>
+
+<section class="slide">
+  <h3>Quiz 3 Q2, solved: the river network</h3>
+  <p><em>Satellite image. Rivers: dark curves, width 1 to 20 px. Land: lighter, smoothly varying. Get (i) rivers bright, land ≈ black; (ii) only river parts with width ≥ 5 bright.</em></p>
+  <h4>(i) Bottom-hat with a big SE</h4>
+  <p>Use a disk (or square) of diameter <strong>larger than 20 px</strong>, say 25. Compute \(g = (f \bullet b) - f\).</p>
+  <ul>
+    <li>Closing fills every dark curve narrower than the SE, so \(f\bullet b\) ≈ the land surface with the rivers "paved over".</li>
+    <li>Land is smooth, so closing barely changes it: \(g \approx 0\) on land.</li>
+    <li>On rivers, \(f\bullet b\) is land-bright but \(f\) is dark, so \(g\) is large.</li>
+  </ul>
+  <h4>(ii) Then open with a 5 px disk</h4>
+  <p>In \(g\) the rivers are bright curves. Opening with a disk of diameter 5 removes bright parts narrower than 5 px and keeps wider parts: \(h = g \circ b_5\).</p>
+  <div class="note trap"><b>Why "negate the image" lost marks.</b> Land intensity varies a lot. In \(L - 1 - f\), dark land patches become bright too. Land is not "close to black". The SE-based hat transform removes the slow background; negation does not.</div>
+  <div class="note"><b>Opening vs. opening by reconstruction here.</b> Plain opening is right for (ii). Reconstruction would regrow thin branches that touch a thick river, which we do not want.</div>
+</section>
+
+<section class="slide">
+  <h3>Gray reconstruction, h-maxima, granulometry</h3>
+  <ul>
+    <li><strong>Geodesic dilation</strong>: \(D_g(f) = (f \oplus b) \wedge g\) (\(\wedge\) = pointwise min). Repeat until stable. Grows bright regions of \(f\) but never above \(g\).</li>
+    <li><strong>Opening by reconstruction</strong>: \(R_f(f \ominus b)\). Removes small bright objects but rebuilds big ones exactly.</li>
+    <li><strong>h-maxima</strong>: \(R_f(f - h)\). Removes peaks less than \(h\) high above their surroundings.</li>
+    <li><strong>h-domes</strong>: \(f - R_f(f-h)\). The peak tops that were cut off. Good blob detector.</li>
+    <li><strong>Regional maxima</strong>: flat connected regions whose neighbours are all lower.</li>
+    <li><strong>Gray granulometry</strong>: open with growing SEs, track \(\sum f\). Works without thresholding.</li>
+  </ul>
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":130,"x":[0,10],"y":[0,1.1],"curves":[{"f":"0.3+0.25*exp(-pow((x-2.5)/0.6,2))+0.55*exp(-pow((x-6.5)/0.8,2))","c":0,"t":"f","tx":0.2},{"f":"0.3+max(0,0.55*exp(-pow((x-6.5)/0.8,2))-0.3)","c":2,"dash":true,"t":"R_f(f − h)","tx":8.6,"tdy":-10}],"text":[{"x":1.6,"y":0.68,"t":"peak lower than h: flattened","cl":"sm"},{"x":5.2,"y":0.98,"t":"tall peak: lowered by h","cl":"sm"}]}'></svg>
+  </figure>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">A photo of a car. You want the dark digits on a light number plate. Which transform, and what SE size?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Bottom-hat \((f\bullet b) - f\) with an SE a bit wider than the stroke width of the digits (but smaller than the plate). Closing fills the strokes, subtracting leaves the strokes bright. Then threshold.</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Compute the opening of \(f = [1, 6, 1, 1, 7, 7, 7, 1]\) with a flat SE of width 3 (ignore out-of-range samples).</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Erosion (min of 3): \([1, 1, 1, 1, 1, 7, 1, 1]\). Dilation of that (max of 3): \([1, 1, 1, 1, 7, 7, 7, 1]\). The width-1 peak "6" is gone. The width-3 plateau "7 7 7" survives exactly.</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">A printed page has text and photos. Get an image of only the text.</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Text strokes are thin and dark. Bottom-hat with an SE wider than strokes but narrower than photo features picks out the text. Or: closing with a medium SE removes text (keeps photos), then subtract to get text only.</p>
+    </div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · grayscale morphology</h3>
+  <ul>
+    <li><b>Erode</b> = min over \(b\); <b>dilate</b> = max over \(\hat b\)</li>
+    <li><b>Open</b> \(f\circ b\): removes bright peaks narrower than \(b\)</li>
+    <li><b>Close</b> \(f\bullet b\): fills dark valleys narrower than \(b\)</li>
+    <li>\(f\circ b \le f \le f\bullet b\); \(-(f\circ b) = (-f)\bullet\hat b\)</li>
+    <li><b>Top-hat</b> \(f - f\circ b\): small bright, fixes shading</li>
+    <li><b>Bottom-hat</b> \(f\bullet b - f\): small dark</li>
+    <li><b>Gradient</b> \((f\oplus b)-(f\ominus b)\)</li>
+    <li><b>Geodesic dil.</b> \((f\oplus b)\wedge g\), repeat</li>
+    <li><b>h-maxima</b> \(R_f(f-h)\); <b>h-domes</b> \(f - R_f(f-h)\)</li>
+    <li><b>River trick</b>: bottom-hat SE &gt; max width, then open by min width</li>
+  </ul>
+</div></section>
+</article>

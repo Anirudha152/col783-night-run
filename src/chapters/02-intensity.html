@@ -1,0 +1,100 @@
+<article class="chapter" data-id="intensity" data-title="Intensity and histograms" data-tag="pre">
+<header class="ch-head">
+  <h1>Intensity transforms and histograms</h1>
+  <div class="ch-meta"><span>Pre-minor</span><span>Deck 03, 04</span></div>
+</header>
+
+<section class="slide">
+  <h3>Point operations: one pixel at a time</h3>
+  <p>An intensity transform maps each pixel value \(r\) to a new value \(s = T(r)\). It ignores neighbours. You can store \(T\) as a lookup table.</p>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":200,"h":160,"x":[0,1],"y":[0,1],"xl":"r","yl":"s","curves":[{"f":"x","c":0,"thin":true,"dash":true},{"f":"1-x","c":3,"t":"negative","tx":0.05,"ty":0.98,"tdy":12},{"f":"log(1+40*x)/log(41)","c":1,"t":"log","tx":0.18,"tdy":-4}]}'></svg><div class="cap">negative, log</div></div>
+    <div><svg class="plot" data-plot='{"w":200,"h":160,"x":[0,1],"y":[0,1],"xl":"r","yl":"s","curves":[{"f":"pow(x,0.4)","c":2,"t":"γ<1","tx":0.12},{"f":"x","c":0,"thin":true,"dash":true},{"f":"pow(x,2.5)","c":4,"t":"γ>1","tx":0.75,"tdx":6,"tdy":4}]}'></svg><div class="cap">gamma \(s = r^\gamma\)</div></div>
+  </figure>
+  <ul>
+    <li><strong>Negative</strong>: \(s = L - 1 - r\).</li>
+    <li><strong>Brightness / contrast</strong>: \(s = c(r - k) + k\). Contrast up if \(c > 1\).</li>
+    <li><strong>Log</strong>: \(s = \log(1 + r)\). Squashes a huge range. Used to display Fourier spectra.</li>
+    <li><strong>Gamma</strong>: \(s = r^\gamma\) on [0, 1]. \(\gamma < 1\) brightens darks. \(\gamma > 1\) darkens.</li>
+  </ul>
+  <div class="note"><b>Rule.</b> \(T\) should be increasing. If not, ordering of intensities flips and you get odd inversions.</div>
+</section>
+
+<section class="slide">
+  <h3>Contrast stretching and thresholding</h3>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":200,"h":150,"x":[0,1],"y":[0,1],"xl":"r","curves":[{"f":"x<0.3?x*0.3:(x<0.7?0.09+(x-0.3)*2.05:0.91+(x-0.7)*0.3)","c":1}],"marks":[{"x":0.3,"t":"r₁"},{"x":0.7,"t":"r₂"}]}'></svg><div class="cap">stretch: steep in the middle</div></div>
+    <div><svg class="plot" data-plot='{"w":200,"h":150,"x":[0,1],"y":[0,1],"xl":"r","curves":[{"f":"x<0.5?0:1","c":2,"n":800}],"marks":[{"x":0.5,"t":"T"}]}'></svg><div class="cap">threshold: a step</div></div>
+  </figure>
+  <p>Where the curve is steep, nearby input values get pushed apart: more contrast. Where it is flat, they get squashed together.</p>
+  <p>Thresholding is the extreme case: output is only 0 or 1.</p>
+</section>
+
+<section class="slide">
+  <h3>The histogram</h3>
+  <p>\(h(r)\) = how many pixels have value \(r\). Normalized: \(p(r) = h(r)/MN\). So \(p(r)\) is the chance a random pixel has value \(r\).</p>
+  \[ m = \sum_r r\,p(r), \qquad \sigma^2 = \sum_r (r - m)^2\,p(r) \]
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":200,"h":110,"x":[0,1],"y":[0,1.1],"yaxis":false,"curves":[{"f":"exp(-pow((x-0.25)/0.07,2))","c":1}]}'></svg><div class="cap">dark, low contrast</div></div>
+    <div><svg class="plot" data-plot='{"w":200,"h":110,"x":[0,1],"y":[0,1.1],"yaxis":false,"curves":[{"f":"0.45+0.12*sin(x*9)","c":2}]}'></svg><div class="cap">spread out, high contrast</div></div>
+  </figure>
+  <p>A narrow histogram means low contrast. Spreading it out improves contrast.</p>
+</section>
+
+<section class="slide">
+  <h3>Histogram equalization</h3>
+  <p>Goal: make the histogram as flat as possible. The trick: use the <strong>CDF</strong> as the transform.</p>
+  \[ s_k = T(r_k) = (L-1)\sum_{j=0}^{k} p(r_j) \]
+  <p>Why it works: if \(s = (L-1)\,\mathrm{CDF}(r)\), then the CDF of \(s\) is a straight line. A straight-line CDF means a flat histogram.</p>
+  <h4>Worked example (L = 8)</h4>
+  <div class="tbl-wrap"><table>
+    <tr><th>r</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+    <tr><th>p(r)</th><td>.19</td><td>.25</td><td>.21</td><td>.16</td><td>.08</td><td>.06</td><td>.03</td><td>.02</td></tr>
+    <tr><th>CDF</th><td>.19</td><td>.44</td><td>.65</td><td>.81</td><td>.89</td><td>.95</td><td>.98</td><td>1</td></tr>
+    <tr><th>7 × CDF</th><td>1.33</td><td>3.08</td><td>4.55</td><td>5.67</td><td>6.23</td><td>6.65</td><td>6.86</td><td>7</td></tr>
+    <tr><th>s</th><td><b>1</b></td><td><b>3</b></td><td><b>5</b></td><td><b>6</b></td><td><b>6</b></td><td><b>7</b></td><td><b>7</b></td><td><b>7</b></td></tr>
+  </table></div>
+  <div class="note trap"><b>Why not perfectly flat?</b> Levels are discrete. Several inputs merge into one output (4 → 6 and 3 → 6). You can never split one bin into two.</div>
+</section>
+
+<section class="slide">
+  <h3>Local equalization and CLAHE</h3>
+  <ul>
+    <li><strong>Local histogram equalization</strong>: for each pixel, equalize using only the histogram of a window around it. Brings out local detail.</li>
+    <li>Fast version: compute \(T\) per block, then interpolate between nearby blocks' \(T\)s.</li>
+  </ul>
+  <p>Problem: the slope of \(T\) is \(T(r) - T(r-1) = (L-1)\,p(r)\). In a flat region the histogram has a tall spike, so the slope is huge. Noise gets amplified.</p>
+  <p><strong>CLAHE</strong> = <strong>C</strong>ontrast <strong>L</strong>imited AHE. Clip the histogram at a max height. Spread the clipped pixels evenly over all bins. This caps the slope, so it caps the contrast boost.</p>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">A 2-bit image (L = 4) has 16 pixels with counts \(h = [8, 4, 4, 0]\). Find the equalization map.</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>\(p = [.5, .25, .25, 0]\). CDF \(= [.5, .75, 1, 1]\). Multiply by 3: \([1.5, 2.25, 3, 3]\). Round: \(0\to2\) (1.5 rounds to 2), \(1\to2\), \(2\to3\), \(3\to3\).</p>
+      <p>Note 0 and 1 merge. Histogram is not flat, which is expected.</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Is histogram equalization idempotent (does applying it twice change anything)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>In the continuous case, yes: the output is already uniform, so its CDF is a straight line and \(T\) is the identity. In the discrete case it is (almost) idempotent too: the second pass maps each occupied level to itself or very close.</p>
+    </div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · intensity</h3>
+  <ul>
+    <li><b>Negative</b>: \(L-1-r\)</li>
+    <li><b>Contrast</b>: \(c(r-k)+k\)</li>
+    <li><b>Gamma</b>: \(r^\gamma\); \(\gamma&lt;1\) brightens</li>
+    <li><b>Log</b>: \(\log(1+r)\), for spectra</li>
+    <li><b>Mean</b> \(\sum r p(r)\), <b>var</b> \(\sum (r-m)^2 p(r)\)</li>
+    <li><b>Hist. eq.</b>: \(s_k = (L-1)\sum_{j\le k} p_j\), round</li>
+    <li><b>Slope of T</b> = \((L-1)p(r)\) → CLAHE clips p</li>
+    <li><b>Discrete eq.</b>: never perfectly flat (bins merge)</li>
+  </ul>
+</div></section>
+</article>

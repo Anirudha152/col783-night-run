@@ -1,0 +1,197 @@
+<article class="chapter" data-id="morph" data-title="Binary morphology" data-tag="post">
+<header class="ch-head">
+  <h1>Binary morphology</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 13 · Quiz 3 Q1</span></div>
+</header>
+
+<section class="slide">
+  <h3>Shapes are sets of pixels</h3>
+  <p>A binary image is just a <strong>set</strong> \(A\) of foreground pixels. Morphology changes shapes using a small probe shape called the <strong>structuring element</strong> (SE), \(B\). Think of \(B\) as the "kernel" of morphology.</p>
+  <ul>
+    <li>\(B\) has an <strong>origin</strong> (orange dot below).</li>
+    <li><strong>Translate</strong>: \((B)_z = \{b + z : b \in B\}\). Slide \(B\) so its origin sits at \(z\).</li>
+    <li><strong>Reflect</strong>: \(\hat B = \{-b : b \in B\}\). Flip through the origin. For symmetric SEs (box, disk, cross), \(\hat B = B\).</li>
+  </ul>
+  <div class="grids">
+    <div><div class="grid" data-grid="###/#o#/###"></div><span class="cap">3 × 3 box</span></div>
+    <div><div class="grid" data-grid=".#./#o#/.#."></div><span class="cap">cross (4-adjacency)</span></div>
+    <div><div class="grid" data-grid="o#/.."></div><span class="cap">B</span></div>
+    <div><div class="grid" data-grid="../#o"></div><span class="cap">B̂ (reflected)</span></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h3>Erosion: where does B fit inside A?</h3>
+  \[ A \ominus B = \{ z : (B)_z \subseteq A \} \]
+  <p>Slide \(B\) everywhere. Keep the origin position only if the <em>whole</em> of \(B\) lies inside \(A\). Shapes shrink. Thin parts and small blobs vanish.</p>
+  <div class="grids">
+    <div><div class="grid" data-grid="......./.#####./.#####./.#####./.###.../.###.../......."></div><span class="cap">A</span></div>
+    <span class="op">⊖ 3×3 =</span>
+    <div><div class="grid" data-grid="......./.xxxxx./.x###x./.x#xxx./.x#x.../.xxx.../......."></div><span class="cap">A ⊖ B</span></div>
+  </div>
+  <div class="legend"><span style="--k:var(--cell-on)">kept</span><span style="--k:transparent;--sh:inset 0 0 0 1.5px var(--rose)">removed</span></div>
+  <p>Check pixel (row 3, col 3): its 3 × 3 window touches the empty pixel at (4, 4), so it is removed.</p>
+</section>
+
+<section class="slide">
+  <h3>Dilation: where does B̂ touch A?</h3>
+  \[ A \oplus B = \{ z : (\hat B)_z \cap A \neq \emptyset \} = \bigcup_{b \in B} (A)_b \]
+  <p>Keep \(z\) if the reflected SE placed at \(z\) hits <em>at least one</em> pixel of \(A\). Equivalently: paste a copy of \(B\) at every pixel of \(A\). Shapes grow. Small gaps and holes fill.</p>
+  <div class="grids">
+    <div><div class="grid" data-grid="......./.#####./.#####./.#####./.###.../.###.../......."></div><span class="cap">A</span></div>
+    <span class="op">⊕ 3×3 =</span>
+    <div><div class="grid" data-grid="+++++++/+#####+/+#####+/+#####+/+###+++/+###+../+++++.."></div><span class="cap">A ⊕ B</span></div>
+  </div>
+  <div class="legend"><span style="--k:var(--cell-on)">original</span><span style="--k:var(--safe)">added</span></div>
+  <div class="note"><b>Duality.</b> Eroding the foreground = dilating the background:
+  \((A \ominus B)^c = A^c \oplus \hat B\) and \((A \oplus B)^c = A^c \ominus \hat B\).</div>
+  <div class="note"><b>Chaining.</b> \((A \oplus B) \oplus C = A \oplus (B \oplus C)\). Dilation is associative. So two dilations by 3 × 3 and 5 × 5 boxes = one dilation by a 7 × 7 box. Same for erosion: \((A \ominus B)\ominus C = A \ominus (B \oplus C)\).</div>
+</section>
+
+<section class="slide">
+  <h3>Opening and closing</h3>
+  <p>Erosion then dilation does <em>not</em> give back \(A\). What it gives is useful:</p>
+  \[ A \circ B = (A \ominus B) \oplus B \qquad A \bullet B = (A \oplus B) \ominus B \]
+  <figure>
+    <svg class="fig" viewBox="0 0 540 150">
+      <g transform="translate(10,20)">
+        <rect x="10" y="20" width="90" height="70" class="f0"/>
+        <rect x="100" y="52" width="40" height="6" class="f0"/>
+        <rect x="128" y="10" width="10" height="10" class="f0"/>
+        <rect x="45" y="48" width="8" height="8" class="fbg"/>
+        <text x="75" y="118" class="mid">A</text>
+      </g>
+      <g transform="translate(190,20)">
+        <rect x="10" y="20" width="90" height="70" rx="9" class="f0"/>
+        <rect x="45" y="48" width="8" height="8" class="fbg"/>
+        <rect x="100" y="52" width="40" height="6" class="soft3"/>
+        <rect x="128" y="10" width="10" height="10" class="soft3"/>
+        <text x="75" y="118" class="mid">opening A ∘ B</text>
+      </g>
+      <g transform="translate(370,20)">
+        <rect x="10" y="20" width="90" height="70" class="f0"/>
+        <rect x="100" y="52" width="40" height="6" class="f0"/>
+        <rect x="128" y="10" width="10" height="10" class="f0"/>
+        <text x="75" y="118" class="mid">closing A • B</text>
+      </g>
+    </svg>
+    <figcaption>SE: a disk a bit bigger than the thin bar, the speck and the hole. Pink = removed by opening.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Opening</strong> = union of all copies of \(B\) that fit inside \(A\). Removes small objects, thin bridges and spikes. Rounds outward corners.</li>
+    <li><strong>Closing</strong> = complement of the union of copies of \(B\) that fit in the background. Fills small holes and thin gaps.</li>
+  </ul>
+  <h4>Properties to quote in proofs</h4>
+  <ul>
+    <li>Duality: \((A \circ B)^c = A^c \bullet \hat B\).</li>
+    <li>\(A \circ B \subseteq A \subseteq A \bullet B\).</li>
+    <li>Monotone: \(C \subseteq D \Rightarrow C \circ B \subseteq D \circ B\).</li>
+    <li><strong>Idempotent</strong>: \((A \circ B) \circ B = A \circ B\). Opening twice does nothing new.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Quiz 3 Q1, solved</h3>
+  <p><em>B and C are 3 × 3 and 5 × 5 boxes. Is there D with \((A\oplus B)\oplus C = A \oplus D\) for all A? Is there E with \((A \circ C)\circ B = A \circ E\) for all A?</em></p>
+  <h4>Part 1: yes, D = 7 × 7 box</h4>
+  <p>Dilation is associative: \((A\oplus B)\oplus C = A \oplus (B \oplus C)\). And \(B \oplus C\) = 3 × 3 box grown by 2 on every side = 7 × 7 box.</p>
+  <h4>Part 2: yes, E = C</h4>
+  <ol>
+    <li>\(A \circ C\) is a union of copies of \(C\) (by definition of opening).</li>
+    <li>Each 5 × 5 box is itself a union of 3 × 3 boxes. So \(C \circ B = C\).</li>
+    <li>So \(A \circ C\) is a union of 3 × 3 boxes that all lie inside \(A \circ C\).</li>
+    <li>Opening by \(B\) keeps every copy of \(B\) that fits. All of \(A \circ C\) is covered by such copies, so nothing is lost: \((A\circ C)\circ B = A \circ C\).</li>
+  </ol>
+  <div class="note"><b>General rule.</b> If \(C\) is "open with respect to \(B\)" (\(C \circ B = C\)), then opening by \(C\) then \(B\) = opening by \(C\). The bigger box wins.</div>
+</section>
+
+<section class="slide">
+  <h3>Boundaries and hit-or-miss</h3>
+  <ul>
+    <li><strong>Inner boundary</strong>: \(A \setminus (A \ominus B)\).</li>
+    <li><strong>Outer boundary</strong>: \((A \oplus B) \setminus A\).</li>
+    <li><strong>Thick boundary</strong>: \((A \oplus B) \setminus (A \ominus B)\) (also = morphological gradient).</li>
+  </ul>
+  <p><strong>Hit-or-miss</strong> finds an exact local pattern. Use two SEs: \(B_1\) must lie in the foreground, \(B_2\) must lie in the background.</p>
+  \[ A \circledast B = (A \ominus B_1) \cap (A^c \ominus B_2) \]
+  <div class="grids">
+    <div><div class="grid" data-grid="?..?/?#o./?##?" style="--cs:26px"></div><span class="cap">corner detector</span></div>
+  </div>
+  <div class="legend"><span style="--k:var(--cell-on)">must be 1</span><span style="--k:var(--raise)">must be 0</span><span style="--k:repeating-linear-gradient(45deg,var(--raise) 0 3px,var(--line-2) 3px 6px)">don't care</span></div>
+  <p>Use it for: endpoints of lines, isolated pixels, corners, or a specific letter shape.</p>
+</section>
+
+<section class="slide">
+  <h3>Connected components and reconstruction</h3>
+  <p><strong>Labelling one component</strong> (this is just BFS):</p>
+  <pre>X ← {x0}                <span class="c">// one seed pixel in A</span>
+repeat: X ← (X ⊕ B) ∩ A  <span class="c">// B = 3×3 box (8-adj) or cross (4-adj)</span>
+until X stops changing</pre>
+  <p><strong>Morphological reconstruction</strong> generalises this. Input: a <em>marker</em> \(F\) and a <em>mask</em> \(G\).</p>
+  \[ D_G(F) = (F \oplus B) \cap G, \qquad R_G(F) = \text{repeat } D_G \text{ until stable} \]
+  <p>Result: every component of \(G\) that touches the marker, kept whole.</p>
+  <ul>
+    <li><strong>Opening by reconstruction</strong>: \(R_A(A \ominus B)\). Erode to kill small things, then regrow survivors to their exact original shape (no rounding). Example: keep only tall letters using a 51 × 1 SE.</li>
+    <li><strong>Hole filling</strong>: marker = image border, mask = \(A^c\). Reconstruct the background reachable from the border, then complement.</li>
+    <li><strong>Border clearing</strong>: \(A - R_A(\text{border pixels})\).</li>
+    <li><strong>Hysteresis thresholding</strong>: marker = strong threshold, mask = weak threshold.</li>
+  </ul>
+  <div class="note trap"><b>Trap.</b> During reconstruction, dilate with the <em>elementary</em> 3 × 3 SE, not the big SE you eroded with.</div>
+</section>
+
+<section class="slide">
+  <h3>Distance transform, skeletons, granulometry</h3>
+  <ul>
+    <li><strong>Distance transform</strong> \(D_A(p)\) = distance from \(p\) to the nearest background pixel. Repeated erosion by the cross gives D₄; by the 3 × 3 box gives D₈.</li>
+    <li><strong>Medial axis</strong> = points with two or more nearest boundary points = the "ridges" of \(D_A\).</li>
+    <li><strong>Medial axis transform</strong> = medial axis with intensity \(D_A\). It stores local thickness and can rebuild the shape.</li>
+    <li><strong>Skeleton by thinning</strong>: peel boundary pixels without breaking connectivity.</li>
+    <li><strong>Granulometry</strong>: open with SEs of growing size; count pixels left. Big drops = many objects of that size. It gives a size distribution.</li>
+  </ul>
+  <figure>
+    <svg class="plot" data-plot='{"w":420,"h":130,"x":[0,10],"y":[0,1.1],"xl":"SE size","yl":"pixels left","curves":[{"f":"x<3?1:(x<4?1-0.35*(x-3):(x<7?0.65:(x<8?0.65-0.5*(x-7):0.15)))","c":1}],"marks":[{"x":3.5,"t":"small grains"},{"x":7.5,"t":"big grains"}]}'></svg>
+  </figure>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text"><span class="q-src">Homework style</span>A binarised page of text has black letters (foreground). Make each text line one long rectangle-ish blob.</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Close with a horizontal line SE, \(1 \times w\), with \(w\) larger than the gap between letters and words but the SE height 1 so lines do not merge vertically. Then open with a small box to remove specks. Lines become separate horizontal blobs.</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Is \((A \circ B) \bullet B\) the same as \((A \bullet B) \circ B\)? Which would you use to remove salt-and-pepper noise from a binary image?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Not the same in general. Opening first removes white specks (salt) then closing fills black specks (pepper). Either order removes both kinds of noise if specks are smaller than \(B\). The textbook example uses opening then closing.</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Prove \((A \ominus B) \ominus C = A \ominus (B \oplus C)\).</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>\(z \in (A\ominus B)\ominus C\) iff \(z + c \in A \ominus B\) for all \(c\) iff \(z + c + b \in A\) for all \(b, c\). The set of all \(b + c\) is exactly \(B \oplus C\). So this says \((B\oplus C)_z \subseteq A\), i.e. \(z \in A \ominus (B\oplus C)\).</p>
+    </div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · binary morphology</h3>
+  <ul>
+    <li><b>Erosion</b> \(A\ominus B = \{z: (B)_z \subseteq A\} = \bigcap_{b} (A)_{-b}\)</li>
+    <li><b>Dilation</b> \(A\oplus B = \{z: (\hat B)_z\cap A\ne\emptyset\} = \bigcup_b (A)_b\)</li>
+    <li><b>Duality</b> \((A\ominus B)^c = A^c\oplus\hat B\)</li>
+    <li><b>Open</b> \((A\ominus B)\oplus B\): kills small/thin bright</li>
+    <li><b>Close</b> \((A\oplus B)\ominus B\): fills small holes/gaps</li>
+    <li>\(A\circ B\subseteq A\subseteq A\bullet B\); both idempotent</li>
+    <li><b>Assoc.</b> \((A\oplus B)\oplus C = A\oplus(B\oplus C)\)</li>
+    <li>If \(C\circ B = C\): \((A\circ C)\circ B = A\circ C\)</li>
+    <li><b>Boundary</b> \(A\setminus(A\ominus B)\)</li>
+    <li><b>Hit-or-miss</b> \((A\ominus B_1)\cap(A^c\ominus B_2)\)</li>
+    <li><b>Geodesic dil.</b> \((F\oplus B)\cap G\), repeat → \(R_G(F)\)</li>
+    <li><b>Open by recon.</b> \(R_A(A\ominus B)\), elementary SE</li>
+    <li><b>Hole fill</b>: \((R_{A^c}(\text{border}))^c\)</li>
+    <li><b>DT</b>: cross → D₄, box → D₈; medial axis = ridges</li>
+  </ul>
+</div></section>
+</article>

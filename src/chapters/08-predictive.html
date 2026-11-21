@@ -1,0 +1,134 @@
+<article class="chapter" data-id="predictive" data-title="Predictive coding" data-tag="post">
+<header class="ch-head">
+  <h1>Predictive coding</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 20 · Quiz 4 Q1</span></div>
+</header>
+
+<section class="slide">
+  <h3>Store the surprise, not the value</h3>
+  <p>Guess each sample from earlier samples: \(\hat f[n]\). Store only the <strong>prediction error</strong>:</p>
+  \[ e[n] = f[n] - \hat f[n] \]
+  <p>The decoder makes the same guess and adds the error back. If guesses are good, errors are small and cluster around 0. A peaked histogram has <strong>low entropy</strong>, so Huffman/arithmetic coding of \(e\) needs few bits.</p>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":240,"h":120,"x":[0,10],"y":[0,1.1],"curves":[{"f":"0.5+0.3*sin(x*0.7)+0.05*sin(x*5)","c":2}]}'></svg><div class="cap">f: values everywhere in [0, 1]</div></div>
+    <div><svg class="plot" data-plot='{"w":240,"h":120,"x":[-1,1],"y":[0,1.1],"xl":"e","curves":[{"f":"exp(-pow(x/0.12,2))","c":1}]}'></svg><div class="cap">histogram of e: tight around 0</div></div>
+  </figure>
+  <p>Example: JPEG stores each block's DC coefficient as the difference from the previous block's DC.</p>
+</section>
+
+<section class="slide">
+  <h3>Which predictor?</h3>
+  <p>1D linear predictor: \(\hat f[n] = \text{round}\big(\sum_i \alpha_i f[n-i]\big)\). In 2D you can also use the row above.</p>
+  <figure class="row">
+    <div style="flex:0 0 150px"><div class="grids" style="margin:0"><div><div class="grid" style="--cs:34px" data-grid="*#./#O." ></div></div></div></div>
+    <div>
+      <p style="margin:0 0 6px"><strong>PNG predictors</strong> (current pixel = orange dot):</p>
+      <ul style="margin:0">
+        <li>a = above, b = left, c = upper-left (teal)</li>
+        <li>predict a, or b, or \((a+b)/2\)</li>
+        <li><strong>Paeth</strong>: compute \(p = a + b - c\). Predict whichever of a, b, c is closest to \(p\).</li>
+      </ul>
+    </div>
+  </figure>
+  <p>Paeth example: a = 100, b = 110, c = 105 → \(p = 105\) → c is closest → predict 105.</p>
+  <div class="note"><b>Key idea for exam questions.</b> A predictor that uses \(f[n-1]\) is exact on <em>constant</em> regions. A predictor \(2f[n-1] - f[n-2]\) (linear extrapolation) is exact on <em>constant-slope</em> regions.</div>
+</section>
+
+<section class="slide">
+  <h3>Quiz 4 Q1, solved</h3>
+  <p><em>Length-n signal, k ≪ n regions of constant slope, jumps at boundaries. Predict \(\hat f(x) = f(x-1)\), then Huffman. Best compression ratio with 8 bits/sample?</em></p>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":240,"h":130,"x":[0,12],"y":[0,1.1],"curves":[{"f":"x<4?0.15+0.05*x:(x<8?0.85-0.1*(x-4):0.4+0.12*(x-8))","c":2,"n":1200}],"marks":[{"x":4},{"x":8}]}'></svg><div class="cap">f</div></div>
+    <div><svg class="plot" data-plot='{"w":240,"h":130,"x":[0,12],"y":[-0.5,0.8],"curves":[{"f":"x<4?0.1:(x<8?-0.2:0.24)","c":1,"n":1200}],"stems":[{"c":3,"pts":[[4,0.65],[8,-0.42]]}]}'></svg><div class="cap">e = f(x) − f(x−1): constant per region + spikes</div></div>
+  </figure>
+  <ol>
+    <li>Inside a region of slope \(s\), \(e = s\). So we get \(k\) values, each repeated about \(n/k\) times. Plus \(k - 1\) jump values that occur once each.</li>
+    <li>Probabilities: about \(1/k\) for each slope value, \(1/n\) for each jump value.</li>
+    <li>Entropy:
+    \[ H \approx k\cdot\tfrac1k\log k + (k-1)\cdot\tfrac1n\log n = \log k + \tfrac{k-1}{n}\log n \]</li>
+    <li>Since \(k \ll n\), the second term is tiny. Ratio \(\approx 8 / \log_2 k\).</li>
+  </ol>
+  <div class="note"><b>Bonus insight.</b> With \(\hat f = 2f(x-1) - f(x-2)\), the error is 0 inside every region. Only ~2 nonzero values per boundary. Far better.</div>
+  <div class="note trap"><b>Huffman caveat.</b> Huffman needs ≥ 1 bit per symbol, so the true Huffman ratio is at most 8. "Best possible" here means the entropy bound.</div>
+</section>
+
+<section class="slide">
+  <h3>Lossy predictive coding</h3>
+  <p>Quantize the error to save more bits: \(\dot e = Q(f - \hat f)\). Now the decoder only knows \(\dot f = \hat f + \dot e\), not \(f\).</p>
+  <figure>
+    <svg class="fig" viewBox="0 0 560 120">
+      <g class="c0 thin"><path d="M20 40 H80"/><path d="M120 40 H180"/><path d="M240 40 H300"/><path d="M340 40 H520"/><path d="M320 40 V90 H220"/><path d="M180 90 H100 V58"/></g>
+      <circle cx="100" cy="40" r="18" class="fr"/><text x="100" y="45" class="mid big">−</text>
+      <rect x="180" y="22" width="60" height="36" rx="6" class="fr"/><text x="210" y="45" class="mid">Q</text>
+      <circle cx="320" cy="40" r="18" class="fr"/><text x="320" y="45" class="mid big">+</text>
+      <rect x="180" y="72" width="40" height="36" rx="6" class="fr"/><text x="200" y="95" class="mid sm">pred</text>
+      <text x="20" y="32">f[n]</text><text x="250" y="32">ė[n]</text><text x="470" y="32">to channel / ḟ[n]</text><text x="104" y="76" class="sm">f̂[n]</text>
+      <text x="380" y="70" class="sm lbl1">predictor input = decoded ḟ, not f</text>
+    </svg>
+  </figure>
+  <p>The <strong>encoder must predict from decoded values</strong> \(\dot f\), exactly like the decoder. If it used the true \(f\), the two would drift apart and errors would pile up.</p>
+</section>
+
+<section class="slide">
+  <h3>Delta modulation</h3>
+  <p>The simplest lossy predictor. 1 bit per sample.</p>
+  \[ \hat f[n] = \alpha\,\dot f[n-1], \qquad \dot e[n] = \begin{cases}+\zeta & e[n] > 0\\ -\zeta & \text{else}\end{cases}, \qquad \dot f[n] = \hat f[n] + \dot e[n] \]
+  <p>Example: \(\zeta = 10\), \(\alpha = 1\), \(f = [3, 6, 9, 12]\), start \(\dot f[-1] = 0\).</p>
+  <table class="mono">
+    <tr><th>n</th><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+    <tr><th>f</th><td>3</td><td>6</td><td>9</td><td>12</td></tr>
+    <tr><th>f̂</th><td>0</td><td>10</td><td>0</td><td>10</td></tr>
+    <tr><th>e</th><td>3</td><td>−4</td><td>9</td><td>2</td></tr>
+    <tr><th>ė</th><td>+10</td><td>−10</td><td>+10</td><td>+10</td></tr>
+    <tr><th>ḟ</th><td>10</td><td>0</td><td>10</td><td>20</td></tr>
+  </table>
+  <ul>
+    <li><strong>Granular noise</strong>: on flat parts the output jitters by ±ζ.</li>
+    <li><strong>Slope overload</strong>: if \(f\) rises faster than ζ per sample, the output lags behind.</li>
+  </ul>
+  <p>Big ζ: less overload, more granular noise. Small ζ: the opposite.</p>
+</section>
+
+<section class="slide">
+  <h3>Video: predict from the previous frame</h3>
+  <ul>
+    <li><strong>Temporal prediction</strong>: \(\hat f[x,y,t] = f[x,y,t-1]\). Great for static scenes, bad for fast motion.</li>
+    <li><strong>Motion compensation</strong>: for each macroblock, search the previous frame for the best-matching block at some offset. Store the <strong>motion vector</strong> + the residual.</li>
+  </ul>
+  <p>Example from slides: plain frame difference had std 12.73 and entropy 4.17 bits. Motion-compensated residual: std 5.62, entropy 3.04 bits.</p>
+  <p>Encoding (the search) is expensive. Decoding (copy block + add residual) is cheap. Some frames are predicted from a <em>later</em> frame, so that frame must be sent first.</p>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text"><span class="q-src">Quiz 4 Q1 variant</span>Same signal but piecewise <em>constant</em> (k flat regions). Predictor \(f(x-1)\). Best compression ratio?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Errors are 0 everywhere except \(k-1\) jumps. \(P(0) \approx 1\), so \(H \approx \frac{k-1}{n}\log n\) (plus a tiny term for the zeros). Ratio \(\approx 8n / ((k-1)\log n)\): huge. (Huffman would cap at 8; RLE or arithmetic coding gets close to the bound.)</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Run delta modulation with \(\zeta = 4\), \(\alpha = 1\), start 0, on \(f = [1, 2, 10, 20]\). Where does slope overload happen?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>n=0: f̂=0, e=1 → +4, ḟ=4. n=1: f̂=4, e=−2 → −4, ḟ=0. n=2: f̂=0, e=10 → +4, ḟ=4. n=3: f̂=4, e=16 → +4, ḟ=8.</p>
+      <p>Output [4, 0, 4, 8] vs input [1, 2, 10, 20]. At n = 2, 3 the signal rises by 8 and 10 per step but output can only rise by 4: slope overload.</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why must a lossy predictive encoder use the decoded signal for prediction?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>The decoder only has \(\dot f\). If the encoder predicted from \(f\), its prediction would differ from the decoder's, and the quantization errors would accumulate (drift) at the decoder. Using \(\dot f\) keeps both in sync, so the reconstruction error at each sample is just that sample's quantization error.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · predictive coding</h3>
+  <ul>
+    <li>\(e = f - \hat f\); code \(e\) (peaked → low H)</li>
+    <li>\(f(x-1)\): exact on constants. \(2f(x-1)-f(x-2)\): exact on ramps</li>
+    <li><b>PNG</b>: a above, b left, c diag; <b>Paeth</b> closest to \(a+b-c\)</li>
+    <li><b>Q4 Q1</b>: \(H\approx\log k + \frac{k-1}{n}\log n\), \(C\approx 8/\log k\)</li>
+    <li><b>Lossy</b>: predict from decoded \(\dot f\) (no drift)</li>
+    <li><b>Delta mod</b>: \(\hat f = \alpha\dot f[n-1]\), \(\dot e = \pm\zeta\), 1 bit</li>
+    <li>Granular noise (flat) vs slope overload (steep)</li>
+    <li><b>Motion comp.</b>: block search → vector + residual</li>
+  </ul>
+</div></section>
+</article>

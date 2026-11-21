@@ -1,0 +1,102 @@
+<article class="chapter" data-id="compression" data-title="Compression basics" data-tag="post">
+<header class="ch-head">
+  <h1>Compression basics: entropy and fidelity</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 18</span></div>
+</header>
+
+<section class="slide">
+  <h3>Why compression is possible</h3>
+  <p>Raw size of an M × N image, C channels, k bits each: \(MNCk\) bits. We can do much better because images have <strong>redundancy</strong>.</p>
+  <ul>
+    <li><strong>Coding redundancy</strong>: not every value needs k bits. Common values can get short codes. (Huffman, arithmetic.)</li>
+    <li><strong>Spatial redundancy</strong>: neighbours are similar. Store "same as before" cheaply. (Run-length, prediction, transforms.)</li>
+    <li><strong>Irrelevant information</strong>: details the eye does not notice can be thrown away. This is <em>lossy</em>.</li>
+  </ul>
+  \[ C = \frac{\text{bits before}}{\text{bits after}}, \qquad R = 1 - \frac{1}{C} \]
+  <p>\(C\) is the compression ratio. \(R\) is the relative redundancy (fraction of the data that was "wasted").</p>
+  <div class="note"><b>No free lunch.</b> No method can shrink <em>every</em> image. There are \(2^{MNCk}\) possible images but fewer than \(2^{MNCk}\) shorter bit strings (pigeonhole). Compression works only because real images are a tiny, structured subset.</div>
+</section>
+
+<section class="slide">
+  <h3>Information and entropy</h3>
+  <p>The <strong>information</strong> in an event is how surprised you are:</p>
+  \[ I(E) = -\log_2 P(E) \text{ bits} \]
+  <p>\(P = 1\): 0 bits (no surprise). \(P = 1/4\): 2 bits.</p>
+  <p>A <strong>memoryless source</strong> emits symbols \(a_1 \dots a_J\) independently with fixed probabilities. Its <strong>entropy</strong> is the average information per symbol:</p>
+  \[ H = -\sum_{j} P(a_j)\log_2 P(a_j) \]
+  <figure>
+    <svg class="plot" data-plot='{"w":420,"h":150,"x":[0,1],"y":[0,1.1],"xl":"p","yl":"H (bits)","curves":[{"f":"x<=0||x>=1?0:-(x*log2(x)+(1-x)*log2(1-x))","c":1,"n":600}],"marks":[{"x":0.5,"t":"0.5 → 1 bit"},{"x":0.1,"t":"0.1 → 0.47"}]}'></svg>
+    <figcaption>Biased coin. Entropy is highest when outcomes are equally likely. Predictable sources have low entropy.</figcaption>
+  </figure>
+  <h4>Useful facts</h4>
+  <ul>
+    <li>\(J\) equally likely symbols: \(H = \log_2 J\). This is the maximum.</li>
+    <li>One symbol with probability 1: \(H = 0\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Worked example and Shannon's bound</h3>
+  <p>An 8-bit image uses only 4 values:</p>
+  <table class="mono">
+    <tr><th>value</th><td>87</td><td>128</td><td>186</td><td>255</td></tr>
+    <tr><th>P</th><td>0.25</td><td>0.47</td><td>0.25</td><td>0.03</td></tr>
+    <tr><th>code</th><td>01</td><td>1</td><td>000</td><td>001</td></tr>
+  </table>
+  \[ H = -(2\times 0.25\log_2 0.25 + 0.47\log_2 0.47 + 0.03\log_2 0.03) \approx 1.66 \text{ bits} \]
+  <p>The variable-length code above averages \(0.25\cdot2 + 0.47\cdot1 + 0.25\cdot3 + 0.03\cdot3 = 1.81\) bits. Compression ratio vs 8 bits: \(8/1.81 \approx 4.4\).</p>
+  <div class="note"><b>Shannon's noiseless coding theorem.</b> A memoryless source with entropy \(H\) needs at least \(H\) bits per symbol on average. No lossless code beats it.</div>
+  <div class="note"><b>But images are not memoryless.</b> Neighbouring pixels are correlated. So first <em>transform</em> (runs, prediction errors, DCT), then code. The entropy of the transformed data is often far below the entropy of the raw pixel histogram.</div>
+</section>
+
+<section class="slide">
+  <h3>Measuring quality for lossy compression</h3>
+  \[ \text{MSE} = \frac{1}{MN}\sum_{x,y}\big(\hat f[x,y]-f[x,y]\big)^2, \qquad \text{PSNR} = 10\log_{10}\frac{I_{\max}^2}{\text{MSE}}\ \text{dB} \]
+  <p>Higher PSNR = better. But MSE does not match what eyes see. Contrast stretch, mean shift, blur, JPEG and salt-and-pepper can all have the <em>same</em> MSE yet look very different.</p>
+  <h4>SSIM (structural similarity)</h4>
+  <p>Compare two patches \(f, g\) on three things and multiply:</p>
+  \[ l = \frac{2\mu_f\mu_g + \epsilon_1}{\mu_f^2+\mu_g^2+\epsilon_1},\quad c = \frac{2\sigma_f\sigma_g + \epsilon_2}{\sigma_f^2+\sigma_g^2+\epsilon_2},\quad s = \frac{\sigma_{fg} + \epsilon_3}{\sigma_f\sigma_g+\epsilon_3} \]
+  <p>SSIM \(= l\cdot c\cdot s \le 1\). Computed on small patches and averaged. A mean shift keeps structure, so SSIM stays high (0.99). Blur and JPEG damage structure, so SSIM drops (≈0.7).</p>
+</section>
+
+<section class="slide">
+  <h3>Encoders, decoders and standards</h3>
+  <ul>
+    <li>Encoding is usually <strong>much more expensive</strong> than decoding (searching for matches, motion vectors, etc).</li>
+    <li>A <strong>standard</strong> usually only fixes the <em>decoder</em>. Many encoders can exist for one decoder.</li>
+    <li><strong>JPEG</strong> = compression standard. <strong>GIF</strong> = file format with its own compression (LZW). <strong>TIFF</strong> = container that can hold many codecs.</li>
+  </ul>
+  <div class="note"><b>Story worth one line in an answer.</b> Xerox scanners (2013) swapped digits in documents. The bug was in their JBIG2 <em>encoder</em> (bad symbol matching), not in the standard, because the standard only specifies decoding.</div>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">An 8-bit image has 4 values, each with probability 1/4. What is the best lossless compression ratio if pixels are independent?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(H = \log_2 4 = 2\) bits. Best ratio \(= 8/2 = 4\).</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Image A is a random noise image. Image B is a horizontal gradient (each column constant, value = column index). Both have the same flat histogram. Which compresses better and why?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Same histogram, so same first-order entropy. But B has huge spatial redundancy: predicting each pixel from its left neighbour gives error always +1, so entropy of the errors is ≈ 0. A has no structure. B compresses far better.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Give the PSNR of an 8-bit image with MSE = 6.5.</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(10\log_{10}(255^2/6.5) = 10\log_{10}(10003) \approx 40\) dB.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · compression basics</h3>
+  <ul>
+    <li><b>Ratio</b> \(C = b/b'\); <b>redundancy</b> \(R = 1 - 1/C\)</li>
+    <li><b>Info</b> \(I = -\log_2 P\)</li>
+    <li><b>Entropy</b> \(H = -\sum p\log_2 p\); max \(\log_2 J\)</li>
+    <li><b>Coin</b>: \(p=0.1 \to H\approx0.47\)</li>
+    <li><b>Shannon</b>: avg bits/symbol \(\ge H\) (memoryless)</li>
+    <li><b>Best ratio</b> = \(k / H\)</li>
+    <li><b>MSE</b> mean sq. error; <b>PSNR</b> \(10\log_{10}(I_{\max}^2/\text{MSE})\)</li>
+    <li><b>SSIM</b> = luminance × contrast × structure, ≤ 1</li>
+    <li>Standards fix the <b>decoder</b> only</li>
+  </ul>
+</div></section>
+</article>

@@ -1,0 +1,137 @@
+<article class="chapter" data-id="basics" data-title="Pixels and interpolation" data-tag="pre">
+<header class="ch-head">
+  <h1>Pixels, sampling and interpolation</h1>
+  <div class="ch-meta"><span>Pre-minor</span><span>Deck 02</span></div>
+</header>
+
+<section class="slide">
+  <h3>A digital image is a grid of numbers</h3>
+  <p>A real scene is a smooth function \(f(x, y)\). A camera turns it into a grid. Two things happen.</p>
+  <ul>
+    <li><strong>Sampling</strong>: we only keep the value at grid points. This decides the <em>resolution</em> (M × N pixels).</li>
+    <li><strong>Quantization</strong>: we round each value to one of \(L\) levels. Usually \(L = 2^k\). With \(k = 8\), we get 256 levels.</li>
+  </ul>
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":150,"x":[0,10],"y":[0,1.1],"xl":"x","curves":[{"f":"0.5+0.3*sin(x*0.9)+0.12*sin(x*2.3)","c":2,"thin":true}],"stems":[{"c":1,"pts":[[0.5,0.5],[1.5,0.75],[2.5,0.75],[3.5,0.5],[4.5,0.25],[5.5,0.25],[6.5,0.5],[7.5,0.5],[8.5,0.75],[9.5,0.75]]}],"hmarks":[{"y":0.25},{"y":0.5},{"y":0.75},{"y":1}]}'></svg>
+    <figcaption>Teal: the real signal. Orange dots: samples, each rounded to the nearest of 4 levels (dashed lines).</figcaption>
+  </figure>
+  <p>Storage for an M × N image with \(k\) bits per pixel: \(M N k\) bits. A colour image has 3 channels, so \(3MNk\).</p>
+</section>
+
+<section class="slide">
+  <h3>Interpolation: finding values between pixels</h3>
+  <p>When we zoom or rotate, we need \(f\) at points that are not on the grid. Guessing those values is <strong>interpolation</strong>.</p>
+  <ul>
+    <li><strong>Nearest neighbour</strong>: copy the closest pixel. Fast, but blocky.</li>
+    <li><strong>Linear (1D)</strong>: draw a straight line between the two nearest samples.</li>
+    <li><strong>Bilinear (2D)</strong>: do linear along \(x\), then linear along \(y\). Order does not matter.</li>
+    <li><strong>Bicubic</strong>: same idea with cubic curves, using 4 × 4 pixels. Smoothest.</li>
+  </ul>
+  \[ f(x) = (1-t)\,f[i] + t\,f[i+1], \qquad i = \lfloor x \rfloor,\; t = x - i \]
+  <figure>
+    <svg class="fig" viewBox="0 0 420 170">
+      <rect x="60" y="20" width="130" height="130" class="fr"/>
+      <circle cx="60" cy="20" r="6" class="f0"/><circle cx="190" cy="20" r="6" class="f0"/>
+      <circle cx="60" cy="150" r="6" class="f0"/><circle cx="190" cy="150" r="6" class="f0"/>
+      <text x="48" y="14" class="end">f₀₀</text><text x="202" y="14">f₁₀</text>
+      <text x="48" y="166" class="end">f₀₁</text><text x="202" y="166">f₁₁</text>
+      <line x1="105" y1="20" x2="105" y2="150" class="c2 thin dash"/>
+      <circle cx="105" cy="20" r="4" class="f2"/><circle cx="105" cy="150" r="4" class="f2"/>
+      <circle cx="105" cy="98" r="6" class="f1"/>
+      <text x="113" y="102" class="lbl1 b">(x, y)</text>
+      <text x="80" y="38" class="sm">t</text><text x="140" y="38" class="sm">1 − t</text>
+      <text x="240" y="60">1. interpolate along x on top row</text>
+      <text x="240" y="80">   and on bottom row (teal dots)</text>
+      <text x="240" y="110">2. interpolate those two</text>
+      <text x="240" y="130">   along y (orange dot)</text>
+    </svg>
+  </figure>
+  <p>Weight of each corner = area of the <em>opposite</em> rectangle. The 4 weights add to 1.</p>
+</section>
+
+<section class="slide">
+  <h3>Worked example: zoom 3 × 3 to 5 × 5</h3>
+  <p>This was Minor Q5(a). Old pixels land on the even positions of the new grid (0, 2, 4). New in-between pixels are averages.</p>
+  <div class="grids">
+    <div><div class="grid num" data-grid="0 0 0/0 1* 0/0 0 0"></div><span class="cap">original</span></div>
+    <span class="op">→</span>
+    <div><div class="grid num" style="--cs:38px" data-grid="0 0 0 0 0/0 .25! .5 .25! 0/0 .5 1* .5 0/0 .25! .5 .25! 0/0 0 0 0 0"></div><span class="cap">bilinear 2×</span></div>
+  </div>
+  <ul>
+    <li>Between two old pixels in a row (e.g. 0 and 1): halfway, so \(0.5\).</li>
+    <li>Pixel with <strong>odd x and odd y</strong> (orange): sits in the middle of 4 old pixels. Value = average of all 4 = \((0+0+0+1)/4 = 0.25\).</li>
+  </ul>
+  <div class="note"><b>Exam tip.</b> They asked you to show the working for only one odd-odd pixel. Write: "it is at the centre of 4 original pixels, so all weights are 1/4."</div>
+</section>
+
+<section class="slide">
+  <h3>Neighbours and distances</h3>
+  <div class="grids">
+    <div><div class="grid" data-grid="...../..#../.#o#./..#../....."></div><span class="cap">4-neighbours N₄</span></div>
+    <div><div class="grid" data-grid="...../.###./.#o#./.###./....."></div><span class="cap">8-neighbours N₈</span></div>
+  </div>
+  <table>
+    <tr><th>Distance</th><th>Formula</th><th>"Circle" shape</th></tr>
+    <tr><td>Euclidean</td><td>\(\sqrt{(\Delta x)^2 + (\Delta y)^2}\)</td><td>disk</td></tr>
+    <tr><td>D₄ (city block / taxicab)</td><td>\(|\Delta x| + |\Delta y|\)</td><td>diamond</td></tr>
+    <tr><td>D₈ (chessboard)</td><td>\(\max(|\Delta x|, |\Delta y|)\)</td><td>square</td></tr>
+  </table>
+  <p>These come back in morphology (distance transform, connected components).</p>
+</section>
+
+<section class="slide">
+  <h3>Image arithmetic and linearity</h3>
+  <ul>
+    <li><strong>Averaging n noisy photos</strong> of the same scene cuts noise. Noise std drops by \(\sqrt{n}\).</li>
+    <li><strong>Subtracting</strong> before/after images shows what changed.</li>
+    <li><strong>Dividing</strong> by an illumination estimate gives reflectance: \(r = f / i\).</li>
+  </ul>
+  <div class="note trap"><b>Overflow trap.</b> In 8-bit unsigned maths, \(130 + 140 = 14\) and \(130 - 140 = 246\). Compute in float or 16-bit, then clip back to [0, 255].</div>
+  <p>An operation \(H\) is <strong>linear</strong> if \(H(af + bg) = aH(f) + bH(g)\).</p>
+  <ul>
+    <li>Sum of all pixels: linear.</li>
+    <li>Max of all pixels: <em>not</em> linear. Example: \(f = [1, 0]\), \(g = [0, 1]\). \(\max(f+g) = 1\), but \(\max f + \max g = 2\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Geometric transforms: always map backwards</h3>
+  <p>To rotate or scale an image by a map \(T\):</p>
+  <ul>
+    <li><strong>Forward</strong> (bad): send every input pixel to \(T(x,y)\). Some output pixels get nothing, so you see holes.</li>
+    <li><strong>Reverse</strong> (good): for every output pixel, find where it came from, \((x, y) = T^{-1}(x', y')\), and interpolate \(f\) there.</li>
+  </ul>
+  <p>Most transforms used are <strong>affine</strong>: \([x'\ y'\ 1]^T = A\,[x\ y\ 1]^T\) with a 3 × 3 matrix whose last row is \([0\ 0\ 1]\). This covers scale, rotate, shear, translate.</p>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text"><span class="q-src">Like Minor Q5</span>The image \(\begin{bmatrix}0&0&0\\0&4&0\\0&0&0\end{bmatrix}\) is zoomed 2× with bilinear interpolation to 5 × 5. What is the value at new position (1, 2)? And at (1, 1)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>(1, 2): odd row, even column. It sits halfway between old pixels at new rows 0 and 2 in column 2. Values 0 and 4, so \(2\).</p>
+      <p>(1, 1): odd-odd, so the centre of 4 old pixels: \((0+0+0+4)/4 = 1\).</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">You have 1 clean shaded image and \(n\) noisy illumination estimates \(i_k\). Should you average the \(i_k\) first and then divide, or divide by each and then average?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Average first. Averaging is linear, but division by \(i\) is not linear in \(i\). Dividing by a noisy \(i_k\) blows up noise wherever \(i_k\) is small. Averaging first gives a clean \(\bar i\), then \(r = f/\bar i\).</p>
+    </div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · basics</h3>
+  <ul>
+    <li><b>Bits</b>: \(MNk\) per channel, \(L = 2^k\) levels</li>
+    <li><b>Linear interp</b>: \((1-t)f[i] + t f[i+1]\)</li>
+    <li><b>Bilinear</b>: x then y; corner weight = opposite area</li>
+    <li><b>2× zoom</b>: odd-odd pixel = mean of 4 neighbours</li>
+    <li><b>D₄</b> \(|\Delta x|+|\Delta y|\), <b>D₈</b> \(\max(|\Delta x|,|\Delta y|)\)</li>
+    <li><b>Avg n images</b>: noise std ÷ \(\sqrt n\)</li>
+    <li><b>uint8</b>: wraps mod 256, compute in float then clip</li>
+    <li><b>Geometric</b>: reverse map \(T^{-1}\) + interpolate</li>
+  </ul>
+</div></section>
+</article>

@@ -1,0 +1,179 @@
+<article class="chapter" data-id="edges" data-title="Edges and Hough" data-tag="post">
+<header class="ch-head">
+  <h1>Edge detection and the Hough transform</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 21, 22 · Quiz 4 Q2, Q4</span></div>
+</header>
+
+<section class="slide">
+  <h3>What derivatives do at an edge</h3>
+  <p>An edge is where intensity changes fast. Real edges are blurred steps: <strong>ramps</strong>. (A smoothing filter applied to a step gives a ramp.)</p>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":170,"h":110,"x":[-4,4],"y":[-0.1,1.1],"curves":[{"f":"1/(1+exp(-2*x))","c":0}]}'></svg><div class="cap">ramp f</div></div>
+    <div><svg class="plot" data-plot='{"w":170,"h":110,"x":[-4,4],"y":[-0.1,0.6],"curves":[{"f":"2*exp(-2*x)/pow(1+exp(-2*x),2)","c":1}]}'></svg><div class="cap">f′: one peak at the edge</div></div>
+    <div><svg class="plot" data-plot='{"w":170,"h":110,"x":[-4,4],"y":[-0.8,0.8],"curves":[{"f":"-x*1.6*exp(-x*x)","c":2}],"dots":[{"x":0,"y":0,"c":3}]}'></svg><div class="cap">f″: +/− pair, zero crossing at edge</div></div>
+  </figure>
+  <ul>
+    <li>Size of \(f'\) tells you <strong>an edge is there</strong>.</li>
+    <li>The <strong>zero crossing</strong> of \(f''\) tells you <strong>exactly where</strong>. Its sign tells you which side is dark.</li>
+    <li>Roof edge (thin line) = two ramps back to back.</li>
+  </ul>
+  <div class="note trap"><b>Noise.</b> Derivatives amplify noise badly (second derivative even more). Always smooth first. Steps: (1) smooth, (2) find candidate edge points, (3) localize/thin them.</div>
+</section>
+
+<section class="slide">
+  <h3>Gradient and Sobel</h3>
+  \[ \nabla f = \begin{bmatrix} \partial f/\partial x \\ \partial f/\partial y\end{bmatrix}, \quad \|\nabla f\| = \sqrt{f_x^2 + f_y^2}, \quad \alpha = \tan^{-1}(f_y / f_x) \]
+  <ul>
+    <li>The gradient points across the edge (perpendicular to the edge direction).</li>
+    <li>Derivative in direction \(d\): \(\nabla f \cdot d\).</li>
+  </ul>
+  <div class="grids">
+    <div><div class="grid num" data-grid="-1 0/0 1"></div><span class="cap">Roberts</span></div>
+    <div><div class="grid num" data-grid="-1 -2 -1/0 0 0/1 2 1"></div><span class="cap">Sobel (one direction)</span></div>
+    <div><div class="grid num" data-grid="-1 0 1/-2 0 2/-1 0 1"></div><span class="cap">Sobel (other)</span></div>
+  </div>
+  <p>Sobel = central difference in one direction × small smoothing [1 2 1] in the other. Simple detector: smooth, Sobel, threshold \(\|\nabla f\|\). Edges come out thick.</p>
+</section>
+
+<section class="slide">
+  <h3>Marr-Hildreth: zero crossings of LoG</h3>
+  <p>Convolve with the <strong>Laplacian of Gaussian</strong>, then mark zero crossings.</p>
+  \[ g = \nabla^2 G * f = \nabla^2 (G * f), \qquad \nabla^2 G(x,y) = \frac{x^2+y^2-2\sigma^2}{\sigma^4}\,e^{-\frac{x^2+y^2}{2\sigma^2}} \]
+  <figure>
+    <svg class="plot" data-plot='{"w":420,"h":130,"x":[-4,4],"y":[-1.1,0.5],"curves":[{"f":"(x*x-1)*exp(-x*x/2)","c":1}],"text":[{"x":0.15,"y":-1.0,"t":"\"Mexican hat\" (negated)","cl":"sm"}]}'></svg>
+  </figure>
+  <ul>
+    <li>\(\sigma\) sets the <strong>scale</strong>: big σ finds only big, strong edges.</li>
+    <li>Fast: Gaussian (separable) then a 3 × 3 Laplacian. Keep Gaussian width ≥ 6σ.</li>
+    <li>Zero crossing at a pixel: sign of \(g\) differs between opposite neighbours (left/right, up/down, or diagonals).</li>
+    <li>Keep only strong edges: also need \(|g(x+1) - g(x-1)| >\) threshold.</li>
+    <li>Why \(\nabla^2(G*f) = (\nabla^2 G)*f\): derivatives commute with convolution, \(\frac{d}{dx}(g*f) = \frac{dg}{dx}*f\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Quiz 4 Q2, solved: dark line on white</h3>
+  <p><em>One column of the image: white, a narrow dark dip, white. Smooth with Gaussian h to get g. Sketch g, dg/dx, ∇²g. Mark Marr-Hildreth edges.</em></p>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":200,"h":110,"x":[-4,4],"y":[-0.1,1.1],"curves":[{"f":"abs(x)<0.5?0.1:1","c":0,"n":1600}]}'></svg><div class="cap">f: dark line</div></div>
+    <div><svg class="plot" data-plot='{"w":200,"h":110,"x":[-4,4],"y":[-0.1,1.1],"curves":[{"f":"1-0.75*exp(-x*x/1.28)","c":2}]}'></svg><div class="cap">g = h * f: smooth dip</div></div>
+  </figure>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":200,"h":120,"x":[-4,4],"y":[-0.8,0.8],"curves":[{"f":"0.75*2*x/1.28*exp(-x*x/1.28)","c":1}]}'></svg><div class="cap">dg/dx: down then up (negative, then positive)</div></div>
+    <div><svg class="plot" data-plot='{"w":200,"h":120,"x":[-4,4],"y":[-0.6,1.3],"curves":[{"f":"0.75*(2/1.28)*(1-2*x*x/1.28)*exp(-x*x/1.28)","c":3}],"dots":[{"x":-0.8,"y":0,"c":1,"r":5},{"x":0.8,"y":0,"c":1,"r":5}]}'></svg><div class="cap">∇²g: positive in the middle, negative on both sides. Edges = orange dots</div></div>
+  </figure>
+  <ul>
+    <li>\(g\) is an upside-down bell.</li>
+    <li>\(dg/dx\): negative on the left wall of the dip, zero at the bottom, positive on the right wall.</li>
+    <li>\(\nabla^2 g\): the dip bottom curves upward, so \(\nabla^2 g > 0\) in the middle and \(< 0\) on the shoulders.</li>
+    <li><strong>Two zero crossings</strong>, one on each side of the line. Those are the edges (the line's two borders), where \(|dg/dx|\) peaks.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Canny edge detector</h3>
+  <ol>
+    <li>Smooth: \(g = G * f\).</li>
+    <li>Gradient magnitude and direction of \(g\).</li>
+    <li><strong>Non-maximum suppression</strong>: look at the two neighbours <em>along the gradient direction</em>. If either has bigger \(\|\nabla g\|\), set this pixel to 0. Edges become 1 pixel thin.</li>
+    <li><strong>Hysteresis thresholding</strong>: high threshold → strong pixels; low threshold → weak pixels. Keep weak pixels only if connected to strong ones.</li>
+  </ol>
+  <figure>
+    <svg class="fig" viewBox="0 0 520 120">
+      <g transform="translate(20,10)">
+        <rect x="0" y="0" width="100" height="100" class="fr"/>
+        <rect x="35" y="35" width="30" height="30" class="f1"/><rect x="5" y="35" width="25" height="30" class="fl"/><rect x="70" y="35" width="25" height="30" class="fl"/>
+        <line x1="0" y1="50" x2="100" y2="50" class="c2 thin dash"/>
+        <text x="50" y="118" class="mid sm">compare with neighbours along ∇g</text>
+      </g>
+      <g transform="translate(200,20)">
+        <path d="M0 70 C40 20 80 80 120 30 S200 60 280 20" class="c0 thin dash"/>
+        <path d="M0 70 C40 20 80 80 120 30" class="c1"/>
+        <path d="M120 30 S200 60 280 20" class="c1"/>
+        <text x="140" y="96" class="mid sm">weak (dashed) kept where linked to strong (orange)</text>
+      </g>
+    </svg>
+  </figure>
+  <p>Canny is near-optimal for a step in Gaussian noise (in 1D it is "find maxima of \(G' * f\)"). Compared with Marr-Hildreth: thinner, cleaner, fewer spurious loops.</p>
+</section>
+
+<section class="slide">
+  <h3>Hough transform for lines</h3>
+  <p>Edge pixels are scattered. Which straight lines pass through many of them? Use the <strong>normal form</strong>:</p>
+  \[ x\cos\theta + y\sin\theta = \rho \]
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":220,"h":150,"x":[0,6],"y":[0,6],"xl":"x","yl":"y","curves":[{"f":"5-0.8*x","c":2,"thin":true}],"dots":[{"x":1,"y":4.2},{"x":2.5,"y":3},{"x":4,"y":1.8}]}'></svg><div class="cap">3 collinear edge pixels</div></div>
+    <div><svg class="plot" data-plot='{"w":260,"h":150,"x":[0,3.14],"y":[-6,6],"xl":"θ","yl":"ρ","curves":[{"f":"1*cos(x)+4.2*sin(x)","c":1,"thin":true},{"f":"2.5*cos(x)+3*sin(x)","c":1,"thin":true},{"f":"4*cos(x)+1.8*sin(x)","c":1,"thin":true}],"dots":[{"x":0.896,"y":3.9,"c":2,"r":5}]}'></svg><div class="cap">each pixel → a sinusoid; they meet at the line's (θ, ρ)</div></div>
+  </figure>
+  <pre>A[ρ, θ] = 0
+for each edge pixel (x, y):
+    for each θ_j:
+        ρ = x cos θ_j + y sin θ_j
+        A[round(ρ), j] += 1
+lines = peaks of A</pre>
+  <ul>
+    <li>Point in image ↔ curve in parameter space. Line in image ↔ point in parameter space.</li>
+    <li>Normal form avoids infinite slopes (vertical lines are fine).</li>
+    <li><strong>Speed-ups</strong>: use the gradient direction, so each pixel votes only for θ near its gradient angle; weight votes by \(\|\nabla f\|\). Progressive probabilistic Hough: add pixels randomly, report a line once its bin is significant, then remove its pixels.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Hough for circles, and Quiz 4 Q4</h3>
+  <p>General circle \((x-a)^2 + (y-b)^2 = r^2\) has 3 parameters → 3D accumulator. Too slow. Two tricks:</p>
+  <ul>
+    <li><strong>Fix r</strong>: for each edge pixel, loop over θ: \(a = x - r\cos\theta,\ b = y - r\sin\theta\). 2D accumulator.</li>
+    <li><strong>Use the gradient</strong>: the centre lies along the gradient line, so loop only over r: \(a = x \mp r\cos\alpha\), \(b = y \mp r\sin\alpha\).</li>
+  </ul>
+  <h4>Quiz 4 Q4: circles tangent to the x-axis</h4>
+  <p>Centre \((c, d)\), radius \(d\). Condition \((x-c)^2 + (y-d)^2 = d^2\). Expand:</p>
+  \[ c^2 - 2xc + x^2 + y^2 - 2yd = 0 \;\Rightarrow\; d = \frac{(x-c)^2 + y^2}{2y} \]
+  <pre>A[c, d] = 0                     <span class="c">// only 2 parameters</span>
+for each edge pixel (x, y) with y ≠ 0:
+    for each c in range:
+        d = ((x − c)² + y²) / (2y)
+        A[c, round(d)] += 1
+circles = peaks of A</pre>
+  <p>Cost: (#edge pixels) × (#c values). Marks went to: solving for \(d\), looping over pixels, looping over \(c\) and incrementing.</p>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">Give an efficient Hough algorithm for circles whose centres lie on the x-axis.</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Centre \((c, 0)\), radius \(r\): \((x-c)^2 + y^2 = r^2\) → \(r = \sqrt{(x-c)^2 + y^2}\).</p>
+      <p>For each edge pixel, for each \(c\): compute \(r\), increment \(A[c, \text{round}(r)]\). Peaks = circles. 2D accumulator.</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Detect only lines through the origin. What accumulator do you need?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(\rho = 0\), so \(x\cos\theta + y\sin\theta = 0\) → \(\theta = \operatorname{atan2}(-x, y)\) (mod π). Each pixel votes once in a 1D accumulator over θ.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Sketch g, g′ and ∇²g for a single upward step edge smoothed by a Gaussian. Where is the Marr-Hildreth edge?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>g is a ramp (S-curve). g′ is a bump (positive peak) at the edge. g″ is positive before the edge, negative after (or vice versa), with one zero crossing exactly at the peak of g′. That zero crossing is the edge.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why do we use the normal form \(\rho = x\cos\theta + y\sin\theta\) and not \(y = mx + c\)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(m\) is unbounded (infinite for vertical lines), so the accumulator cannot cover it. \(\theta \in [0, \pi)\) and \(|\rho| \le\) image diagonal are both bounded.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · edges and Hough</h3>
+  <ul>
+    <li>\(f'\) peak = edge present; \(f''\) zero crossing = location</li>
+    <li>Steps: smooth → candidates → localize</li>
+    <li>\(\|\nabla f\| = \sqrt{f_x^2+f_y^2}\), \(\alpha = \tan^{-1}(f_y/f_x)\), ⊥ edge</li>
+    <li><b>Sobel</b> [−1 −2 −1; 0 0 0; 1 2 1]</li>
+    <li><b>LoG</b> \(\frac{x^2+y^2-2\sigma^2}{\sigma^4}e^{-(x^2+y^2)/2\sigma^2}\)</li>
+    <li><b>M-H</b>: zero crossings of \(\nabla^2(G*f)\) + slope threshold</li>
+    <li>Dark line: ∇²g + middle, − sides → 2 edges</li>
+    <li><b>Canny</b>: Gaussian → grad → NMS along ∇ → hysteresis</li>
+    <li><b>Hough line</b> \(\rho = x\cos\theta + y\sin\theta\); pt → sinusoid</li>
+    <li><b>Circle</b> (fixed r): \(a = x - r\cos\theta\), \(b = y - r\sin\theta\)</li>
+    <li><b>Tangent to x-axis</b>: \(d = \frac{(x-c)^2+y^2}{2y}\), loop c</li>
+  </ul>
+</div></section>
+</article>

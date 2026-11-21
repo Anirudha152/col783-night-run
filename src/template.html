@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COL783 Night Run</title>
+<meta name="description" content="Study notes for the COL7(6)83 Digital Image Analysis major.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2312100e'/%3E%3Ccircle cx='16' cy='16' r='8' fill='%23ff7a45'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Fraunces:opsz,wght,SOFT@9..144,500..700,0..100&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=JSON.parse(localStorage.getItem('col783:theme'));if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+</head>
+<body>
+<div class="app">
+  <div class="mob-bar">
+    <button class="icon-btn" id="menu" type="button" aria-label="Chapters"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5.5h14M3 10h14M3 14.5h14"/></svg></button>
+    <span class="m-title" id="mTitle"></span>
+    <span class="m-delta" id="mDelta"></span>
+  </div>
+  <aside class="side">
+    <div class="plan" id="plan"></div>
+    <ol class="toc" id="toc"></ol>
+  </aside>
+  <main class="main">
+    <div class="read">
+<!--CHAPTERS-->
+      <nav class="ch-nav" id="chnav"></nav>
+    </div>
+  </main>
+</div>
+<script defer src="assets/app.js"></script>
+</body>
+</html>
