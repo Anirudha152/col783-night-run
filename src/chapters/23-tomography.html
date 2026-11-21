@@ -1,0 +1,96 @@
+<article class="chapter" data-id="tomography" data-title="Tomography" data-tag="pre">
+<header class="ch-head">
+  <h1>Tomography: images from projections</h1>
+  <div class="ch-meta"><span>Pre-minor</span><span>Deck 12</span></div>
+</header>
+
+<section class="slide">
+  <h3>CT measures line integrals</h3>
+  <p>X-rays lose energy passing through tissue with absorption \(\mu(x,y)\):</p>
+  \[ I = I_0\exp\!\Big(-\int\mu\,dl\Big) \;\Rightarrow\; -\ln\frac{I}{I_0} = \int\mu(x,y)\,dl \quad(\text{a raysum}) \]
+  <p>The <strong>Radon transform</strong> collects raysums along every line \(x\cos\theta + y\sin\theta = \rho\):</p>
+  \[ g_\theta(\rho) = \iint f(x,y)\,\delta(x\cos\theta + y\sin\theta - \rho)\,dx\,dy \]
+  <figure class="row">
+    <div style="flex:0 0 200px">
+      <svg class="fig" viewBox="0 0 200 180">
+        <circle cx="90" cy="95" r="45" class="soft1" style="stroke:var(--safe)"/>
+        <g class="c0 thin dash"><path d="M20 50H170M20 75H170M20 95H170M20 115H170M20 140H170"/></g>
+        <path d="M175 50 Q190 50 190 95 Q190 140 175 140" class="c2"/>
+        <text x="90" y="172" class="mid sm">parallel rays at angle θ</text>
+        <text x="160" y="40" class="sm lbl2">g<tspan baseline-shift="sub" font-size="8">θ</tspan>(ρ)</text>
+      </svg>
+    </div>
+    <div>
+      <p>Disk of radius r, value A:</p>
+      \[ g_\theta(\rho) = \begin{cases}2A\sqrt{r^2 - \rho^2} & |\rho| &lt; r\\ 0 & \text{else}\end{cases} \]
+      <p>(Chord length × A.) Same for every θ because the disk is symmetric.</p>
+      <p>A <strong>sinogram</strong> shows \(g_\theta(\rho)\) as an image with axes (ρ, θ). A single point traces a sinusoid.</p>
+    </div>
+  </figure>
+</section>
+
+<section class="slide">
+  <h3>Backprojection</h3>
+  <p>Smear each projection back across the image along its rays, then add over all angles:</p>
+  \[ f_\theta(x,y) = g_\theta(x\cos\theta + y\sin\theta), \qquad \hat f(x,y) = \int_0^\pi f_\theta(x,y)\,d\theta \]
+  <p>This "laminogram" is <strong>blurry</strong>: every point becomes a star of lines, i.e. a halo that falls off like \(1/r\). More angles help but never remove the blur.</p>
+</section>
+
+<section class="slide">
+  <h3>Projection-slice theorem</h3>
+  \[ G_\theta(\omega) = F(\omega\cos\theta,\ \omega\sin\theta) \]
+  <p>The 1D Fourier transform of one projection = one line (slice) through the 2D Fourier transform of the image, at the same angle.</p>
+  <p><strong>Proof for θ = 0</strong>: \(g_0(\rho) = \int f(\rho, y)\,dy\). Its transform \(G_0(\omega) = \iint f(\rho,y)e^{-2\pi i\omega\rho}\,d\rho\,dy = F(\omega, 0)\). Rotation does the rest.</p>
+  <figure>
+    <svg class="fig" viewBox="0 0 220 200" style="max-width:240px">
+      <rect x="10" y="10" width="200" height="180" class="fr"/>
+      <g class="c1 thin"><path d="M110 100 L200 100M110 100 L20 100M110 100 L188 55M110 100 L32 145M110 100 L155 22M110 100 L65 178M110 100 L110 15M110 100 L110 185M110 100 L65 22M110 100 L155 178M110 100 L32 55M110 100 L188 145"/></g>
+      <circle cx="110" cy="100" r="5" class="f0"/>
+      <text x="115" y="196" class="sm">slices crowd near the centre</text>
+    </svg>
+  </figure>
+</section>
+
+<section class="slide">
+  <h3>Filtered backprojection</h3>
+  <p>The slices fill the 2D frequency plane, but crowd near the centre: density ∝ \(1/|\omega|\). Plain backprojection over-weights low frequencies → blur. Fix: weight each slice by \(|\omega|\) first.</p>
+  <ol>
+    <li>For each θ: \(G_\theta = \mathcal F(g_\theta)\).</li>
+    <li>Multiply by the ramp \(|\omega|\) (times a smooth window).</li>
+    <li>Inverse transform → filtered projection \(\tilde g_\theta\).</li>
+    <li>Backproject \(\tilde g_\theta\) and add.</li>
+  </ol>
+  <figure>
+    <svg class="plot" data-plot='{"w":420,"h":130,"x":[-1,1],"y":[0,1.1],"xl":"ω","curves":[{"f":"abs(x)","c":0,"dash":true,"thin":true,"t":"|ω|","tx":0.85,"tdy":-6},{"f":"abs(x)*(0.54+0.46*cos(PI*x))","c":1,"t":"|ω| × Hamming","tx":0.25,"tdy":-12}]}'></svg>
+  </figure>
+  <ul>
+    <li>\(|\omega|\) alone is not square-integrable and boosts noise; a hard cutoff rings.</li>
+    <li>Use a smooth window, e.g. \(c + (1-c)\cos(2\pi\omega/M)\), \(c = 0.54\) (Hamming).</li>
+    <li>In practice: convolve each \(g_\theta\) with \(\mathcal F^{-1}(H(\omega)|\omega|)\).</li>
+  </ul>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">What is the Radon transform of a single point \(\delta(x - x_0, y - y_0)\)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(g_\theta(\rho) = \delta(\rho - (x_0\cos\theta + y_0\sin\theta))\). For each θ a spike at \(\rho = x_0\cos\theta + y_0\sin\theta\): a sinusoid in the sinogram. (Same curve as in the Hough transform.)</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why is simple backprojection blurry, and what does the ramp filter fix?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>By projection-slice, backprojecting adds Fourier slices through the origin. Low frequencies get contributions from every slice; high frequencies from few. So low frequencies are over-weighted by \(1/|\omega|\) → blur. Multiplying by \(|\omega|\) evens it out.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · tomography</h3>
+  <ul>
+    <li>Raysum \(-\ln(I/I_0) = \int\mu\,dl\)</li>
+    <li><b>Radon</b> \(g_\theta(\rho) = \iint f\,\delta(x\cos\theta+y\sin\theta-\rho)\)</li>
+    <li>Disk: \(2A\sqrt{r^2-\rho^2}\); point → sinusoid</li>
+    <li><b>Backproj.</b> \(\hat f = \int_0^\pi g_\theta(x\cos\theta+y\sin\theta)\,d\theta\): 1/r blur</li>
+    <li><b>Proj-slice</b> \(G_\theta(\omega) = F(\omega\cos\theta,\omega\sin\theta)\)</li>
+    <li><b>FBP</b>: \(|\omega|\) × window (Hamming c = 0.54), then backproject</li>
+  </ul>
+</div></section>
+</article>

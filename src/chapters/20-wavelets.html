@@ -1,0 +1,144 @@
+<article class="chapter" data-id="wavelets" data-title="Wavelet transforms" data-tag="post">
+<header class="ch-head">
+  <h1>Wavelet transforms</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 17, 18</span></div>
+</header>
+
+<section class="slide">
+  <h3>Why wavelets: sparsity</h3>
+  <p>A signal is <strong>sparse</strong> in a basis if only a few coefficients are far from zero.</p>
+  <p>Take a step \(f = [0 \cdots 0\ 1 \cdots 1]\):</p>
+  <table>
+    <tr><th>Basis</th><th>Nonzero coefficients</th></tr>
+    <tr><td>Standard (pixels)</td><td>O(N)</td></tr>
+    <tr><td>Fourier</td><td>O(N)</td></tr>
+    <tr><td><strong>Haar</strong></td><td><strong>O(log N)</strong>: only wavelets that straddle the jump, one per scale</td></tr>
+  </table>
+  <ul>
+    <li><strong>Compression</strong>: keep only the biggest coefficients (top 10%, even top 1% still looks fine).</li>
+    <li><strong>Denoising</strong>: a clean image is sparse but noise is spread over all coefficients. Zero the small ones.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Scaling functions and wavelets</h3>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":220,"h":120,"x":[-0.5,1.5],"y":[-1.3,1.3],"curves":[{"f":"x>=0&&x<1?1:0","c":2,"n":1200}]}'></svg><div class="cap">father φ: box on [0, 1)</div></div>
+    <div><svg class="plot" data-plot='{"w":220,"h":120,"x":[-0.5,1.5],"y":[-1.3,1.3],"curves":[{"f":"x>=0&&x<0.5?1:(x>=0.5&&x<1?-1:0)","c":1,"n":1200}]}'></svg><div class="cap">mother ψ: +1 then −1</div></div>
+  </figure>
+  \[ \phi_{jk}(x) = 2^{j/2}\,\phi(2^jx - k), \qquad \psi_{jk}(x) = 2^{j/2}\,\psi(2^jx - k) \]
+  <ul>
+    <li>\(j\) = scale (bigger \(j\) = narrower), \(k\) = position. \(2^{j/2}\) keeps the norm 1.</li>
+    <li>\(\phi_{jk}\) gives approximation coefficients \(a_{jk}\); \(\psi_{jk}\) gives detail coefficients \(d_{jk}\).</li>
+    <li>All \(\phi\)'s at one scale are orthogonal; all \(\psi\)'s too; and \(\psi_{jk} \perp \phi_{jk'}\).</li>
+  </ul>
+  \[ f(x) = \sum_k a_{jk}\phi_{jk}(x) + \sum_{j'\ge j}\sum_k d_{j'k}\,\psi_{j'k}(x) \]
+</section>
+
+<section class="slide">
+  <h3>Nested spaces</h3>
+  <p>\(V_j\) = functions you can draw with scale-\(j\) boxes (piecewise constant on pieces of width \(2^{-j}\)).</p>
+  <ul>
+    <li>\(V_j \subset V_{j+1}\): anything at a coarse scale can be drawn at a finer one.</li>
+    <li>\(W_j\) = the <em>details</em> you need to go from \(V_j\) to \(V_{j+1}\) = span of \(\psi_{jk}\).</li>
+  </ul>
+  \[ V_{j+1} = V_j \oplus W_j \]
+  <p>To design a new wavelet: pick \(\phi, \psi\) so that this holds (ideally keeping orthogonality). A tent function \(\phi\) fails: shifted tents overlap (not orthogonal) and there is no obvious \(\psi\).</p>
+  <h4>Refinement relation</h4>
+  <p>\(\phi\) lives in \(V_0 \subset V_1\), so it is a combination of narrower \(\phi\)'s:</p>
+  \[ \phi = \sum_k h_\phi[k]\,\phi_{1k}, \qquad \psi = \sum_k h_\psi[k]\,\phi_{1k} \]
+  <p>Haar: \(h_\phi = [\tfrac{1}{\sqrt2}, \tfrac{1}{\sqrt2}]\), \(h_\psi = [\tfrac{1}{\sqrt2}, -\tfrac{1}{\sqrt2}]\). The filters \(h_\phi, h_\psi\) fully determine \(\phi, \psi\). Daubechies wavelets (db4 etc.) are carefully chosen longer filters.</p>
+</section>
+
+<section class="slide">
+  <h3>The fast wavelet transform</h3>
+  <p>Start with \(a_0 = f\). Then repeatedly:</p>
+  \[ a_j = \downarrow_2(h_\phi \star a_{j+1}), \qquad d_j = \downarrow_2(h_\psi \star a_{j+1}) \]
+  <p>That is: correlate with each filter, keep every second sample. Recurse on \(a\) only.</p>
+  <figure>
+    <svg class="fig" viewBox="0 0 540 130">
+      <g class="mono sm">
+        <text x="20" y="66">a<tspan baseline-shift="sub" font-size="8">j+1</tspan></text>
+        <rect x="90" y="20" width="60" height="30" rx="5" class="fr"/><text x="120" y="40" class="mid">⋆ h<tspan baseline-shift="sub" font-size="8">φ</tspan></text>
+        <rect x="90" y="80" width="60" height="30" rx="5" class="fr"/><text x="120" y="100" class="mid">⋆ h<tspan baseline-shift="sub" font-size="8">ψ</tspan></text>
+        <rect x="175" y="20" width="40" height="30" rx="5" class="fr"/><text x="195" y="40" class="mid">↓2</text>
+        <rect x="175" y="80" width="40" height="30" rx="5" class="fr"/><text x="195" y="100" class="mid">↓2</text>
+        <text x="230" y="40" class="lbl2 b">a<tspan baseline-shift="sub" font-size="8">j</tspan> → recurse</text>
+        <text x="230" y="100" class="lbl1 b">d<tspan baseline-shift="sub" font-size="8">j</tspan> (keep)</text>
+        <text x="380" y="40">cost: N + N/2 + N/4 + …</text>
+        <text x="380" y="60">= O(N), faster than FFT</text>
+      </g>
+      <g class="c0 thin"><path d="M70 62 L90 35M70 62 L90 95M150 35H175M150 95H175M215 35H228M215 95H228"/></g>
+    </svg>
+  </figure>
+  <p><strong>Inverse</strong>: upsample and convolve with the (not reversed) filters, then add:</p>
+  \[ a_{j+1} = h_\phi * \uparrow_2(a_j) + h_\psi * \uparrow_2(d_j) \]
+</section>
+
+<section class="slide">
+  <h3>Wavelets in 2D</h3>
+  <p>Products of 1D functions give one scaling function and three wavelets:</p>
+  \[ \phi(x)\phi(y),\quad \psi^H = \psi(x)\phi(y),\quad \psi^V = \phi(x)\psi(y),\quad \psi^D = \psi(x)\psi(y) \]
+  <figure>
+    <svg class="fig" viewBox="0 0 220 220" style="max-width:240px">
+      <rect x="10" y="10" width="200" height="200" class="fr" style="stroke:var(--line-2)"/>
+      <path d="M110 10V210M10 110H210" class="c0 thin"/>
+      <path d="M60 10V110M10 60H110" class="c0 thin"/>
+      <rect x="10" y="10" width="50" height="50" class="soft1"/>
+      <text x="35" y="40" class="mid sm b">a</text><text x="85" y="40" class="mid sm">d<tspan baseline-shift="super" font-size="8">H</tspan></text><text x="35" y="90" class="mid sm">d<tspan baseline-shift="super" font-size="8">V</tspan></text><text x="85" y="90" class="mid sm">d<tspan baseline-shift="super" font-size="8">D</tspan></text>
+      <text x="160" y="64" class="mid">d<tspan baseline-shift="super" font-size="8">H</tspan></text><text x="60" y="164" class="mid">d<tspan baseline-shift="super" font-size="8">V</tspan></text><text x="160" y="164" class="mid">d<tspan baseline-shift="super" font-size="8">D</tspan></text>
+    </svg>
+    <figcaption>Two levels. Each level splits the current approximation (top-left) into 4 quarter-size bands; recurse only on the approximation.</figcaption>
+  </figure>
+  <p>The three detail bands respond to edges of different orientations; the approximation is a small blurred copy.</p>
+</section>
+
+<section class="slide">
+  <h3>Denoising: hard vs soft thresholding</h3>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":220,"h":150,"x":[-3,3],"y":[-3,3],"xl":"t","curves":[{"f":"abs(x)<1?0:x","c":1,"n":1200}],"marks":[{"x":1,"t":"τ"},{"x":-1}]}'></svg><div class="cap">hard: kill if |t| &lt; τ, else keep</div></div>
+    <div><svg class="plot" data-plot='{"w":220,"h":150,"x":[-3,3],"y":[-3,3],"xl":"t","curves":[{"f":"abs(x)<1?0:(x>0?x-1:x+1)","c":2,"n":1200}],"marks":[{"x":1,"t":"τ"},{"x":-1}]}'></svg><div class="cap">soft: kill small, shrink rest by τ</div></div>
+  </figure>
+  <ol>
+    <li>Wavelet transform of the noisy image.</li>
+    <li>Threshold the detail coefficients (not the coarse approximation).</li>
+    <li>Inverse transform.</li>
+  </ol>
+  <p>Hard keeps big coefficients exact but can leave blips. Soft gives smoother results, slightly shrinks edges.</p>
+  <div class="note"><b>Why normalize?</b> Use the orthonormal Haar for thresholding. Then coefficient error = pixel error, so "drop the smallest coefficients" really means "lose the least". With plain averages/differences, a coarse-scale difference affects many pixels but has a small value, so it gets dropped wrongly.</div>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">For \(f = [0,0,0,0,0,1,1,1]\), compute the unnormalized Haar transform (means and differences). How many nonzero detail coefficients?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Level 1: means [0, 0, 0.5, 1], diffs [0, 0, −1, 0]. Level 2: means [0, 0.75], diffs [0, −0.5]. Level 3: mean [0.375], diff [−0.75].</p>
+      <p>Transform: [0.375, −0.75, 0, −0.5, 0, 0, −1, 0]. Only 3 nonzero details: one per scale, at the jump. O(log N).</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Apply soft thresholding with τ = 1 to coefficients \([5, -0.4, 2, -3, 0.8]\). And hard?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Soft: [4, 0, 1, −2, 0]. Hard: [5, 0, 2, −3, 0].</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why is the fast wavelet transform O(N) but the FFT O(N log N)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Each level costs O(size) and only the approximation (half the size) is processed again: \(N + N/2 + N/4 + \dots = 2N\). The FFT recurses on <em>both</em> halves: \(T(N) = 2T(N/2) + O(N)\).</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · wavelets</h3>
+  <ul>
+    <li>Step: Haar O(log N) coeffs vs Fourier O(N)</li>
+    <li>\(\phi_{jk} = 2^{j/2}\phi(2^jx-k)\), same for ψ</li>
+    <li>Haar φ = box[0,1); ψ = +1 [0,½), −1 [½,1)</li>
+    <li>\(V_j\subset V_{j+1}\), \(V_{j+1} = V_j\oplus W_j\)</li>
+    <li><b>Refinement</b> \(\phi = \sum h_\phi[k]\phi_{1k}\); Haar \(h_\phi = [\frac1{\sqrt2},\frac1{\sqrt2}]\), \(h_\psi = [\frac1{\sqrt2},-\frac1{\sqrt2}]\)</li>
+    <li><b>FWT</b> \(a_j = \downarrow_2(h_\phi\star a_{j+1})\), \(d_j = \downarrow_2(h_\psi\star a_{j+1})\), O(N)</li>
+    <li><b>Inverse</b> \(a_{j+1} = h_\phi*\uparrow_2a_j + h_\psi*\uparrow_2d_j\)</li>
+    <li>2D: \(\phi\phi\), \(\psi\phi\), \(\phi\psi\), \(\psi\psi\); recurse on LL</li>
+    <li><b>Hard</b>: \(|t|&lt;\tau\to0\). <b>Soft</b>: \(\text{sign}(t)\max(|t|-\tau,0)\)</li>
+  </ul>
+</div></section>
+</article>

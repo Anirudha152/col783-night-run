@@ -2459,6 +2459,631 @@ circles = peaks of A</pre>
 </div></section>
 </article>
 
+<article class="chapter" data-id="pyramids" data-title="Pyramids and Haar" data-tag="post">
+<header class="ch-head">
+  <h1>Image pyramids and the Haar transform</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 16 · Quiz 3 Q4</span></div>
+</header>
+
+<section class="slide">
+  <h3>A pyramid = the image at many sizes</h3>
+  <figure class="row">
+    <div style="flex:0 0 220px">
+      <svg class="fig" viewBox="0 0 220 170">
+        <rect x="10" y="10" width="128" height="128" class="fr" style="stroke:var(--line-2)"/>
+        <rect x="148" y="74" width="64" height="64" class="fr" style="stroke:var(--line-2)"/>
+        <rect x="180" y="42" width="32" height="32" class="fl"/>
+        <rect x="196" y="26" width="16" height="16" class="f1"/>
+        <text x="74" y="156" class="mid sm">fine (level 0)</text><text x="196" y="156" class="mid sm">coarse →</text>
+      </svg>
+    </div>
+    <div>
+      <p>Each level halves the width and height. Total storage:</p>
+      \[ N^2\Big(1 + \tfrac14 + \tfrac1{16} + \cdots\Big) \le \tfrac43 N^2 \]
+      <p>Two kinds:</p>
+      <ul>
+        <li><strong>Approximation pyramid</strong>: blurred and shrunk copies.</li>
+        <li><strong>Prediction residual pyramid</strong>: what each level adds on top of the coarser one.</li>
+      </ul>
+    </div>
+  </figure>
+</section>
+
+<section class="slide">
+  <h3>Building the two pyramids</h3>
+  <h4>Approximation (reduce)</h4>
+  \[ a_{j-1} = \downarrow_2 (h * a_j), \qquad a_0 = f \]
+  <ul>
+    <li>Filter, then keep every second sample. The filter prevents aliasing.</li>
+    <li>2 × 2 mean → mean pyramid. Gaussian (e.g. \(\frac1{16}[1\,4\,6\,4\,1]\)) → <strong>Gaussian pyramid</strong>. No filter → subsampling pyramid (aliased).</li>
+  </ul>
+  <h4>Residual (expand and subtract)</h4>
+  \[ d_j = a_j - \text{expand}(a_{j-1}) = a_j - h * \uparrow_2(a_{j-1}) \]
+  <ul>
+    <li>Store \(d_0, d_{-1}, \dots\) plus the coarsest \(a\). You can rebuild \(f\) exactly: \(a_j = \text{expand}(a_{j-1}) + d_j\).</li>
+    <li>Gaussian filters for both steps → <strong>Laplacian pyramid</strong>, because \(d_j \approx \nabla^2(G * f)\): a band-pass image.</li>
+  </ul>
+  <p>Uses: mipmapping in graphics, multi-scale blob detection (\(|d_j|\)), seamless image blending.</p>
+</section>
+
+<section class="slide">
+  <h3>Quiz 3 Q4, solved</h3>
+  <p><em>\(f = [0, 16, 0, 0, 0]\). 3-level approximation pyramid with \(h = [\frac14, \frac12, \frac14]\), zero padding. Then the residual pyramid with linear interpolation.</em></p>
+  <h4>Approximation pyramid</h4>
+  <ol>
+    <li>\(h * f\): each output = \((f[i-1] + 2f[i] + f[i+1])/4\) → \([4, 8, 4, 0, 0]\). Keep positions 0, 2, 4 → \(a_{-1} = [4, 4, 0]\).</li>
+    <li>\(h * a_{-1}\) → \([(0+8+4)/4,\ (4+8+0)/4,\ (4+0+0)/4] = [3, 3, 1]\). Keep 0, 2 → \(a_{-2} = [3, 1]\).</li>
+  </ol>
+  <div class="grids">
+    <div><div class="grid num" data-grid="0 16* 0 0 0"></div><span class="cap">a₀</span></div>
+    <div><div class="grid num" data-grid="4 4 0"></div><span class="cap">a₋₁</span></div>
+    <div><div class="grid num" data-grid="3 1"></div><span class="cap">a₋₂</span></div>
+  </div>
+  <h4>Residual pyramid</h4>
+  <ol>
+    <li>Expand \(a_{-2} = [3, 1]\) to 3 samples (old samples at even spots, midpoints averaged): \([3, 2, 1]\). \(d_{-1} = [4,4,0] - [3,2,1] = [1, 2, -1]\).</li>
+    <li>Expand \(a_{-1} = [4,4,0]\) to 5 samples: \([4, 4, 4, 2, 0]\). \(d_0 = [0,16,0,0,0] - [4,4,4,2,0] = [-4, 12, -4, -2, 0]\).</li>
+  </ol>
+  <div class="grids">
+    <div><div class="grid num" data-grid="-4 12* -4 -2 0"></div><span class="cap">d₀</span></div>
+    <div><div class="grid num" data-grid="1 2 -1"></div><span class="cap">d₋₁</span></div>
+    <div><div class="grid num" data-grid="3 1"></div><span class="cap">a₋₂ (kept)</span></div>
+  </div>
+  <div class="note"><b>Check yourself.</b> expand(a₋₁) + d₀ must give back f. \([4,4,4,2,0] + [-4,12,-4,-2,0] = [0,16,0,0,0]\). ✓</div>
+</section>
+
+<section class="slide">
+  <h3>The Haar transform in 1D</h3>
+  <p>Use a width-2 average as the approximation. To undo it you only need the pairwise differences.</p>
+  <table class="mono">
+    <tr><th>f</th><td>10 12 14 8 6 4 2 0</td></tr>
+    <tr><th>averages a₋₁</th><td>11 11 5 1</td></tr>
+    <tr><th>differences d₋₁</th><td>−2 6 2 2</td></tr>
+  </table>
+  <p>Rebuild: each pair = \(a \pm d/2\). E.g. \(11 \pm 1\) → 10, 12.</p>
+  <p>Repeat on the averages: \(a_{-2} = [11, 3]\), \(d_{-2} = [0, 4]\); \(a_{-3} = [7]\), \(d_{-3} = [8]\). Result: \([7, 8, 0, 4, -2, 6, 2, 2]\).</p>
+  <h4>Make it orthonormal</h4>
+  <p>Averages/differences are not orthonormal. Use \(\frac{x+y}{\sqrt2}\) and \(\frac{x-y}{\sqrt2}\) instead:</p>
+  <table class="mono">
+    <tr><th>a₋₁</th><td>11√2, 11√2, 5√2, √2</td><th>d₋₁</th><td>−√2, 3√2, √2, √2</td></tr>
+    <tr><th>a₋₂</th><td>22, 6</td><th>d₋₂</th><td>0, 4</td></tr>
+    <tr><th>a₋₃</th><td>14√2</td><th>d₋₃</th><td>8√2</td></tr>
+  </table>
+  <p>That is the <strong>Haar transform</strong>. Energy is preserved: \(\sum f^2 = \sum t^2\).</p>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text"><span class="q-src">Quiz 3 Q4 variant</span>\(f = [8, 0, 0, 0, 8]\), \(h = [\frac14,\frac12,\frac14]\), zero padding. Find \(a_{-1}\), \(a_{-2}\), and \(d_0\).</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>\(h*f = [4, 2, 0, 2, 4]\). Keep 0, 2, 4: \(a_{-1} = [4, 0, 4]\).</p>
+      <p>\(h*a_{-1} = [2, 2, 2]\). Keep 0, 2: \(a_{-2} = [2, 2]\).</p>
+      <p>expand\((a_{-1}) = [4, 2, 0, 2, 4]\). \(d_0 = [8,0,0,0,8] - [4,2,0,2,4] = [4, -2, 0, -2, 4]\).</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Compute the orthonormal Haar transform of \([4, 6, 10, 12]\). Check energy.</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>\(a_{-1} = [10/\sqrt2, 22/\sqrt2] = [5\sqrt2, 11\sqrt2]\), \(d_{-1} = [-\sqrt2, -\sqrt2]\).</p>
+      <p>\(a_{-2} = (5\sqrt2 + 11\sqrt2)/\sqrt2 = 16\), \(d_{-2} = -6\).</p>
+      <p>\(t = [16, -6, -\sqrt2, -\sqrt2]\). Energy: \(16 + 36 + 100 + 144 = 296 = 256 + 36 + 2 + 2\). ✓</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">How much more memory does a full Laplacian pyramid need than the image?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>At most \(\frac43\) of the image, so about 33% extra (in 2D). In 1D it is up to 2×.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · pyramids, Haar</h3>
+  <ul>
+    <li>Storage ≤ \(\frac43N^2\)</li>
+    <li><b>Reduce</b> \(a_{j-1} = \downarrow_2(h*a_j)\); keep even indices</li>
+    <li><b>Residual</b> \(d_j = a_j - h*\uparrow_2 a_{j-1}\)</li>
+    <li>Gaussian+Gaussian → Laplacian pyramid (band-pass)</li>
+    <li>\(h=[\frac14\ \frac12\ \frac14]\): out \(=(f_{i-1}+2f_i+f_{i+1})/4\)</li>
+    <li>Linear expand: copy at even, average at odd</li>
+    <li>Q3 Q4: \(a = [0,16,0,0,0],[4,4,0],[3,1]\); \(d = [-4,12,-4,-2,0],[1,2,-1]\)</li>
+    <li><b>Haar</b>: \((x+y)/\sqrt2\), \((x-y)/\sqrt2\), recurse on a</li>
+    <li>Unnormalized: mean, diff; rebuild \(a\pm d/2\)</li>
+  </ul>
+</div></section>
+</article>
+
+<article class="chapter" data-id="wavelets" data-title="Wavelet transforms" data-tag="post">
+<header class="ch-head">
+  <h1>Wavelet transforms</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 17, 18</span></div>
+</header>
+
+<section class="slide">
+  <h3>Why wavelets: sparsity</h3>
+  <p>A signal is <strong>sparse</strong> in a basis if only a few coefficients are far from zero.</p>
+  <p>Take a step \(f = [0 \cdots 0\ 1 \cdots 1]\):</p>
+  <table>
+    <tr><th>Basis</th><th>Nonzero coefficients</th></tr>
+    <tr><td>Standard (pixels)</td><td>O(N)</td></tr>
+    <tr><td>Fourier</td><td>O(N)</td></tr>
+    <tr><td><strong>Haar</strong></td><td><strong>O(log N)</strong>: only wavelets that straddle the jump, one per scale</td></tr>
+  </table>
+  <ul>
+    <li><strong>Compression</strong>: keep only the biggest coefficients (top 10%, even top 1% still looks fine).</li>
+    <li><strong>Denoising</strong>: a clean image is sparse but noise is spread over all coefficients. Zero the small ones.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Scaling functions and wavelets</h3>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":220,"h":120,"x":[-0.5,1.5],"y":[-1.3,1.3],"curves":[{"f":"x>=0&&x<1?1:0","c":2,"n":1200}]}'></svg><div class="cap">father φ: box on [0, 1)</div></div>
+    <div><svg class="plot" data-plot='{"w":220,"h":120,"x":[-0.5,1.5],"y":[-1.3,1.3],"curves":[{"f":"x>=0&&x<0.5?1:(x>=0.5&&x<1?-1:0)","c":1,"n":1200}]}'></svg><div class="cap">mother ψ: +1 then −1</div></div>
+  </figure>
+  \[ \phi_{jk}(x) = 2^{j/2}\,\phi(2^jx - k), \qquad \psi_{jk}(x) = 2^{j/2}\,\psi(2^jx - k) \]
+  <ul>
+    <li>\(j\) = scale (bigger \(j\) = narrower), \(k\) = position. \(2^{j/2}\) keeps the norm 1.</li>
+    <li>\(\phi_{jk}\) gives approximation coefficients \(a_{jk}\); \(\psi_{jk}\) gives detail coefficients \(d_{jk}\).</li>
+    <li>All \(\phi\)'s at one scale are orthogonal; all \(\psi\)'s too; and \(\psi_{jk} \perp \phi_{jk'}\).</li>
+  </ul>
+  \[ f(x) = \sum_k a_{jk}\phi_{jk}(x) + \sum_{j'\ge j}\sum_k d_{j'k}\,\psi_{j'k}(x) \]
+</section>
+
+<section class="slide">
+  <h3>Nested spaces</h3>
+  <p>\(V_j\) = functions you can draw with scale-\(j\) boxes (piecewise constant on pieces of width \(2^{-j}\)).</p>
+  <ul>
+    <li>\(V_j \subset V_{j+1}\): anything at a coarse scale can be drawn at a finer one.</li>
+    <li>\(W_j\) = the <em>details</em> you need to go from \(V_j\) to \(V_{j+1}\) = span of \(\psi_{jk}\).</li>
+  </ul>
+  \[ V_{j+1} = V_j \oplus W_j \]
+  <p>To design a new wavelet: pick \(\phi, \psi\) so that this holds (ideally keeping orthogonality). A tent function \(\phi\) fails: shifted tents overlap (not orthogonal) and there is no obvious \(\psi\).</p>
+  <h4>Refinement relation</h4>
+  <p>\(\phi\) lives in \(V_0 \subset V_1\), so it is a combination of narrower \(\phi\)'s:</p>
+  \[ \phi = \sum_k h_\phi[k]\,\phi_{1k}, \qquad \psi = \sum_k h_\psi[k]\,\phi_{1k} \]
+  <p>Haar: \(h_\phi = [\tfrac{1}{\sqrt2}, \tfrac{1}{\sqrt2}]\), \(h_\psi = [\tfrac{1}{\sqrt2}, -\tfrac{1}{\sqrt2}]\). The filters \(h_\phi, h_\psi\) fully determine \(\phi, \psi\). Daubechies wavelets (db4 etc.) are carefully chosen longer filters.</p>
+</section>
+
+<section class="slide">
+  <h3>The fast wavelet transform</h3>
+  <p>Start with \(a_0 = f\). Then repeatedly:</p>
+  \[ a_j = \downarrow_2(h_\phi \star a_{j+1}), \qquad d_j = \downarrow_2(h_\psi \star a_{j+1}) \]
+  <p>That is: correlate with each filter, keep every second sample. Recurse on \(a\) only.</p>
+  <figure>
+    <svg class="fig" viewBox="0 0 540 130">
+      <g class="mono sm">
+        <text x="20" y="66">a<tspan baseline-shift="sub" font-size="8">j+1</tspan></text>
+        <rect x="90" y="20" width="60" height="30" rx="5" class="fr"/><text x="120" y="40" class="mid">⋆ h<tspan baseline-shift="sub" font-size="8">φ</tspan></text>
+        <rect x="90" y="80" width="60" height="30" rx="5" class="fr"/><text x="120" y="100" class="mid">⋆ h<tspan baseline-shift="sub" font-size="8">ψ</tspan></text>
+        <rect x="175" y="20" width="40" height="30" rx="5" class="fr"/><text x="195" y="40" class="mid">↓2</text>
+        <rect x="175" y="80" width="40" height="30" rx="5" class="fr"/><text x="195" y="100" class="mid">↓2</text>
+        <text x="230" y="40" class="lbl2 b">a<tspan baseline-shift="sub" font-size="8">j</tspan> → recurse</text>
+        <text x="230" y="100" class="lbl1 b">d<tspan baseline-shift="sub" font-size="8">j</tspan> (keep)</text>
+        <text x="380" y="40">cost: N + N/2 + N/4 + …</text>
+        <text x="380" y="60">= O(N), faster than FFT</text>
+      </g>
+      <g class="c0 thin"><path d="M70 62 L90 35M70 62 L90 95M150 35H175M150 95H175M215 35H228M215 95H228"/></g>
+    </svg>
+  </figure>
+  <p><strong>Inverse</strong>: upsample and convolve with the (not reversed) filters, then add:</p>
+  \[ a_{j+1} = h_\phi * \uparrow_2(a_j) + h_\psi * \uparrow_2(d_j) \]
+</section>
+
+<section class="slide">
+  <h3>Wavelets in 2D</h3>
+  <p>Products of 1D functions give one scaling function and three wavelets:</p>
+  \[ \phi(x)\phi(y),\quad \psi^H = \psi(x)\phi(y),\quad \psi^V = \phi(x)\psi(y),\quad \psi^D = \psi(x)\psi(y) \]
+  <figure>
+    <svg class="fig" viewBox="0 0 220 220" style="max-width:240px">
+      <rect x="10" y="10" width="200" height="200" class="fr" style="stroke:var(--line-2)"/>
+      <path d="M110 10V210M10 110H210" class="c0 thin"/>
+      <path d="M60 10V110M10 60H110" class="c0 thin"/>
+      <rect x="10" y="10" width="50" height="50" class="soft1"/>
+      <text x="35" y="40" class="mid sm b">a</text><text x="85" y="40" class="mid sm">d<tspan baseline-shift="super" font-size="8">H</tspan></text><text x="35" y="90" class="mid sm">d<tspan baseline-shift="super" font-size="8">V</tspan></text><text x="85" y="90" class="mid sm">d<tspan baseline-shift="super" font-size="8">D</tspan></text>
+      <text x="160" y="64" class="mid">d<tspan baseline-shift="super" font-size="8">H</tspan></text><text x="60" y="164" class="mid">d<tspan baseline-shift="super" font-size="8">V</tspan></text><text x="160" y="164" class="mid">d<tspan baseline-shift="super" font-size="8">D</tspan></text>
+    </svg>
+    <figcaption>Two levels. Each level splits the current approximation (top-left) into 4 quarter-size bands; recurse only on the approximation.</figcaption>
+  </figure>
+  <p>The three detail bands respond to edges of different orientations; the approximation is a small blurred copy.</p>
+</section>
+
+<section class="slide">
+  <h3>Denoising: hard vs soft thresholding</h3>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":220,"h":150,"x":[-3,3],"y":[-3,3],"xl":"t","curves":[{"f":"abs(x)<1?0:x","c":1,"n":1200}],"marks":[{"x":1,"t":"τ"},{"x":-1}]}'></svg><div class="cap">hard: kill if |t| &lt; τ, else keep</div></div>
+    <div><svg class="plot" data-plot='{"w":220,"h":150,"x":[-3,3],"y":[-3,3],"xl":"t","curves":[{"f":"abs(x)<1?0:(x>0?x-1:x+1)","c":2,"n":1200}],"marks":[{"x":1,"t":"τ"},{"x":-1}]}'></svg><div class="cap">soft: kill small, shrink rest by τ</div></div>
+  </figure>
+  <ol>
+    <li>Wavelet transform of the noisy image.</li>
+    <li>Threshold the detail coefficients (not the coarse approximation).</li>
+    <li>Inverse transform.</li>
+  </ol>
+  <p>Hard keeps big coefficients exact but can leave blips. Soft gives smoother results, slightly shrinks edges.</p>
+  <div class="note"><b>Why normalize?</b> Use the orthonormal Haar for thresholding. Then coefficient error = pixel error, so "drop the smallest coefficients" really means "lose the least". With plain averages/differences, a coarse-scale difference affects many pixels but has a small value, so it gets dropped wrongly.</div>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">For \(f = [0,0,0,0,0,1,1,1]\), compute the unnormalized Haar transform (means and differences). How many nonzero detail coefficients?</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>Level 1: means [0, 0, 0.5, 1], diffs [0, 0, −1, 0]. Level 2: means [0, 0.75], diffs [0, −0.5]. Level 3: mean [0.375], diff [−0.75].</p>
+      <p>Transform: [0.375, −0.75, 0, −0.5, 0, 0, −1, 0]. Only 3 nonzero details: one per scale, at the jump. O(log N).</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Apply soft thresholding with τ = 1 to coefficients \([5, -0.4, 2, -3, 0.8]\). And hard?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Soft: [4, 0, 1, −2, 0]. Hard: [5, 0, 2, −3, 0].</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why is the fast wavelet transform O(N) but the FFT O(N log N)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Each level costs O(size) and only the approximation (half the size) is processed again: \(N + N/2 + N/4 + \dots = 2N\). The FFT recurses on <em>both</em> halves: \(T(N) = 2T(N/2) + O(N)\).</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · wavelets</h3>
+  <ul>
+    <li>Step: Haar O(log N) coeffs vs Fourier O(N)</li>
+    <li>\(\phi_{jk} = 2^{j/2}\phi(2^jx-k)\), same for ψ</li>
+    <li>Haar φ = box[0,1); ψ = +1 [0,½), −1 [½,1)</li>
+    <li>\(V_j\subset V_{j+1}\), \(V_{j+1} = V_j\oplus W_j\)</li>
+    <li><b>Refinement</b> \(\phi = \sum h_\phi[k]\phi_{1k}\); Haar \(h_\phi = [\frac1{\sqrt2},\frac1{\sqrt2}]\), \(h_\psi = [\frac1{\sqrt2},-\frac1{\sqrt2}]\)</li>
+    <li><b>FWT</b> \(a_j = \downarrow_2(h_\phi\star a_{j+1})\), \(d_j = \downarrow_2(h_\psi\star a_{j+1})\), O(N)</li>
+    <li><b>Inverse</b> \(a_{j+1} = h_\phi*\uparrow_2a_j + h_\psi*\uparrow_2d_j\)</li>
+    <li>2D: \(\phi\phi\), \(\psi\phi\), \(\phi\psi\), \(\psi\psi\); recurse on LL</li>
+    <li><b>Hard</b>: \(|t|&lt;\tau\to0\). <b>Soft</b>: \(\text{sign}(t)\max(|t|-\tau,0)\)</li>
+  </ul>
+</div></section>
+</article>
+
+<article class="chapter" data-id="sift" data-title="Scale space and SIFT" data-tag="post">
+<header class="ch-head">
+  <h1>Scale space and SIFT</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 24, 25</span></div>
+</header>
+
+<section class="slide">
+  <h3>Scale space</h3>
+  <p>Harris corners are not scale invariant: a zoomed-in corner looks like an edge to a fixed-size window. Fix: look at the image at <strong>every</strong> blur level.</p>
+  \[ L(x, y, \sigma) = G_\sigma * f \]
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":140,"x":[0,10],"y":[-0.1,1.2],"curves":[{"f":"0.2+0.6*exp(-pow((x-3)/0.3,2))+0.5*exp(-pow((x-7)/1.2,2))+0.1*sin(x*9)","c":0,"thin":true,"t":"σ small","tx":0.2},{"f":"0.2+0.45*exp(-pow((x-3)/0.7,2))+0.48*exp(-pow((x-7)/1.3,2))","c":2,"t":"σ medium","tx":4.6,"tdy":-2},{"f":"0.25+0.2*exp(-pow((x-3)/1.6,2))+0.4*exp(-pow((x-7)/1.7,2))","c":1,"t":"σ large","tx":9.2,"tdy":14}]}'></svg>
+    <figcaption>As σ grows, fine detail disappears first. Small blobs die out early, big blobs survive longer.</figcaption>
+  </figure>
+  <p>Why Gaussian? It never creates new extrema when blurring more; coarser levels are fully determined by finer ones (causality); it is rotation-symmetric and shift-invariant.</p>
+  <ul>
+    <li>Gaussian pyramid ≈ scale space at σ, 2σ, 4σ, …</li>
+    <li>Finer steps: σ, kσ, k²σ, … with \(k = 2^{1/s}\). An <strong>octave</strong> (doubling of σ) holds \(s\) steps (\(s + 1\) images). In practice \(s \approx 4\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Blobs = extrema of the DoG</h3>
+  \[ D(x,y,\sigma) = L(x,y,k\sigma) - L(x,y,\sigma) \approx (k-1)\,\sigma^2\,\nabla^2 G * f \]
+  <ul>
+    <li><strong>DoG</strong> (difference of Gaussians) is a cheap approximation of the <strong>scale-normalized LoG</strong>, \(\sigma^2\nabla^2G\).</li>
+    <li>Bright and dark blobs = local maxima/minima of \(D\) in <strong>x, y and σ</strong>. Check all 26 neighbours: 8 at the same scale, 9 above, 9 below.</li>
+    <li>The σ where a blob's response peaks is its <strong>characteristic scale</strong>. It grows with the blob, so detection is scale-covariant.</li>
+  </ul>
+  <div class="note"><b>Why multiply by σ²?</b> The plain LoG response gets weaker as σ grows (more blur, smaller derivatives), so bigger scales would always lose. \(\sigma^2\nabla^2 G\) (and DoG) give the same peak value for a blob and its scaled copy: scale invariant.</div>
+  <p><strong>Harris–Laplace</strong>: find Harris corners, then pick each one's scale by maximizing \(|\sigma^2\,\text{LoG}|\), re-locate, repeat.</p>
+</section>
+
+<section class="slide">
+  <h3>Sub-pixel accuracy with Taylor series</h3>
+  <p>The true peak lies between samples. Fit a parabola through the sample and its neighbours:</p>
+  \[ f(x+h) \approx f(x) + f'(x)h + \tfrac12 f''(x)h^2 \;\Rightarrow\; h^* = -\frac{f'(x)}{f''(x)},\quad f(x+h^*) \approx f(x) + \tfrac12 f'(x)h^* \]
+  <p>Use \(f' = \frac{f(x+1) - f(x-1)}{2}\) and \(f'' = f(x+1) - 2f(x) + f(x-1)\). (This equals quadratic interpolation.)</p>
+  <p>In several dimensions (x, y, σ): \(v^* = -H^{-1}\nabla f\), value \(f + \tfrac12\nabla f^Tv^*\), with \(H\) the Hessian.</p>
+  <h4>Example</h4>
+  <p>Samples 2, 5, 4 at x = −1, 0, 1. \(f' = 1\), \(f'' = -4\). \(h^* = 0.25\), peak ≈ \(5 + 0.5\cdot1\cdot0.25 = 5.125\).</p>
+</section>
+
+<section class="slide">
+  <h3>SIFT keypoints: filter, orient</h3>
+  <ol>
+    <li>Find DoG extrema, refine with Taylor.</li>
+    <li><strong>Drop low contrast</strong>: \(|D| &lt; 0.03\) (for intensities in [0, 1]).</li>
+    <li><strong>Drop edges</strong>: DoG responds along edges too. Use the 2 × 2 Hessian \(H = \begin{bmatrix}D_{xx}&D_{xy}\\D_{xy}&D_{yy}\end{bmatrix}\); keep only if \(\lambda_{\min} > \lambda_{\max}/r\):
+    \[ \frac{\operatorname{tr}(H)^2}{\det H} &lt; \frac{(r+1)^2}{r} \quad (r = 10 \Rightarrow 12.1) \]</li>
+    <li><strong>Orientation</strong>: histogram of gradient directions around the point (on \(L(\cdot,\sigma)\), not on \(f\)), weighted by gradient magnitude and a Gaussian. Peak = orientation. Any other peak above 80% of the top makes an extra keypoint.</li>
+  </ol>
+  <div class="note"><b>Soft binning.</b> Don't put a value only in the nearest bin (small shifts flip bins). Split it between the two nearest bins with linear weights (e.g. 0.55 / 0.45). Same trick helps Hough and local histograms.</div>
+</section>
+
+<section class="slide">
+  <h3>SIFT descriptor and matching</h3>
+  <figure class="row">
+    <div style="flex:0 0 190px">
+      <svg class="fig" viewBox="0 0 180 180">
+        <g class="c0 thin"><rect x="10" y="10" width="160" height="160" style="fill:none"/><path d="M50 10V170M90 10V170M130 10V170M10 50H170M10 90H170M10 130H170"/></g>
+        <g class="c1 thin">
+          <path d="M30 30l12 -4M30 30l-6 10M30 30l8 8M30 30l-10 -2"/><path d="M70 30l14 2M70 30l-4 -10M70 30l3 9"/><path d="M110 30l6 -12M110 30l-9 6M110 30l10 4"/><path d="M150 30l-12 0M150 30l4 10M150 30l8 -6"/>
+          <path d="M30 70l10 8M30 70l-8 -6"/><path d="M70 70l14 -6M70 70l-5 9M70 70l-8 -8"/><path d="M110 70l12 4M110 70l-3 -10"/><path d="M150 70l-6 10M150 70l9 -4"/>
+          <path d="M30 110l8 -10M30 110l-10 3"/><path d="M70 110l12 6M70 110l-7 -9"/><path d="M110 110l-12 -3M110 110l4 11"/><path d="M150 110l10 -6M150 110l-6 8"/>
+          <path d="M30 150l12 2M30 150l-4 -10"/><path d="M70 150l-10 6M70 150l6 -11"/><path d="M110 150l11 -5M110 150l-8 7"/><path d="M150 150l-12 -4M150 150l3 10"/>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <ul>
+        <li>4 × 4 grid of cells around the keypoint, rotated to its orientation and scaled to its σ.</li>
+        <li>Each cell: histogram of gradient directions with 8 bins.</li>
+        <li>4 × 4 × 8 = <strong>128 numbers</strong>.</li>
+        <li>Normalize to unit length, clip values at 0.2, normalize again (limits the effect of a few huge gradients, like CLAHE).</li>
+      </ul>
+    </div>
+  </figure>
+  <p><strong>Matching</strong>: nearest neighbour in 128-D. Reject ambiguous matches with the <strong>ratio test</strong>: keep only if \(d_{\text{nearest}} &lt; 0.8\,d_{\text{2nd nearest}}\).</p>
+  <table>
+    <tr><th>SIFT is…</th><th></th></tr>
+    <tr><td>translation, rotation, scale</td><td>covariant keypoints, invariant descriptor</td></tr>
+    <tr><td>intensity offset</td><td>invariant (gradients)</td></tr>
+    <tr><td>contrast scaling</td><td>invariant (normalization)</td></tr>
+    <tr><td>viewpoint / affine</td><td>only partly robust</td></tr>
+  </table>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text"><span class="q-src">Homework</span>Show \(G_{k\sigma} - G_\sigma \approx (k-1)\sigma^2\nabla^2G_\sigma\) for \(k\) near 1.</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>The Gaussian satisfies the heat equation \(\frac{\partial G}{\partial\sigma} = \sigma\nabla^2 G\). So \(G_{k\sigma} - G_\sigma \approx \frac{\partial G}{\partial\sigma}(k\sigma - \sigma) = (k-1)\sigma\cdot\sigma\nabla^2G = (k-1)\sigma^2\nabla^2 G\).</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">At a DoG extremum, \(D_{xx} = 20\), \(D_{yy} = 1\), \(D_{xy} = 0\). Keep or reject (r = 10)? What if \(D_{xx} = 4\)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Threshold \((r+1)^2/r = 12.1\). First: tr = 21, det = 20, tr²/det = 22.05 &gt; 12.1 → reject (edge; eigenvalue ratio 20). Second: tr = 5, det = 4, 25/4 = 6.25 &lt; 12.1 → keep.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Samples 3, 6, 6 at x = −1, 0, 1. Where is the refined peak and its value?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(f' = (6 - 3)/2 = 1.5\), \(f'' = 6 - 12 + 3 = -3\). \(h^* = 0.5\). Value \(= 6 + 0.5\cdot1.5\cdot0.5 = 6.375\).</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why compute the SIFT orientation and descriptor on \(L(x,y,\sigma)\) and not on \(f\)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>To keep scale invariance: at the detected σ, the blurred image looks the same no matter how much the original was zoomed. Gradients of \(f\) itself would change with image scale.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · SIFT</h3>
+  <ul>
+    <li>\(L = G_\sigma*f\); Gaussian: no new extrema, causal</li>
+    <li>Octave: \(k = 2^{1/s}\), s ≈ 4</li>
+    <li><b>DoG</b> \(L(k\sigma)-L(\sigma)\approx(k-1)\sigma^2\nabla^2G*f\)</li>
+    <li>Extrema in (x, y, σ): 26 neighbours</li>
+    <li>σ²-normalized LoG ⇒ scale invariant</li>
+    <li><b>Refine</b> \(h^* = -f'/f''\), value \(f+\frac12f'h^*\); nD \(-H^{-1}\nabla f\)</li>
+    <li>Reject \(|D|&lt;0.03\); edges: \(\text{tr}^2/\det \ge (r+1)^2/r\) (12.1)</li>
+    <li>Orientation: grad histogram, peaks ≥ 80%; soft binning</li>
+    <li>Descriptor 4×4×8 = 128; normalize, clip 0.2, renormalize</li>
+    <li>Match: ratio test \(d_1 &lt; 0.8\,d_2\)</li>
+  </ul>
+</div></section>
+</article>
+
+<article class="chapter" data-id="restoration" data-title="Denoising and Wiener" data-tag="pre">
+<header class="ch-head">
+  <h1>Restoration: noise, blur, Wiener</h1>
+  <div class="ch-meta"><span>Pre-minor</span><span>Deck 10, 11, 12 · Minor Q3, Q4</span></div>
+</header>
+
+<section class="slide">
+  <h3>The degradation model</h3>
+  \[ g = h * f + \eta \qquad\Longleftrightarrow\qquad G = HF + N \]
+  <ul>
+    <li>\(h\) = <strong>point spread function</strong> (PSF): what a single bright point turns into. It models blur.</li>
+    <li>\(\eta\) = additive noise.</li>
+    <li>Works when the blur is linear and the same everywhere (translation-invariant). Defocus and uniform motion: yes. Blur that varies across the image: no.</li>
+  </ul>
+  <p>Get \(h\) by observation (find a point-like feature), by experiment (photograph a point source), or by a model (e.g. motion, atmospheric turbulence \(H = e^{-k(u^2+v^2)^{5/6}}\)).</p>
+</section>
+
+<section class="slide">
+  <h3>Noise models and which filter fixes them</h3>
+  <table>
+    <tr><th>Noise</th><th>Looks like</th><th>Best spatial filter</th></tr>
+    <tr><td>Gaussian</td><td>grain everywhere</td><td>mean / Gaussian (or bilateral, NLM)</td></tr>
+    <tr><td>Uniform</td><td>grain, flat histogram</td><td>mean</td></tr>
+    <tr><td>Salt-and-pepper</td><td>isolated white/black dots</td><td><strong>median</strong></td></tr>
+    <tr><td>Uniform + salt-and-pepper</td><td>both</td><td><strong>alpha-trimmed mean</strong></td></tr>
+    <tr><td>Poisson (shot)</td><td>worse in bright, low-light</td><td>—</td></tr>
+  </table>
+  <ul>
+    <li>Estimate noise: image a flat scene or find a flat patch; its histogram shape gives the type, its variance gives the strength. (Assume mean 0, since a constant offset can't be told apart from the image.)</li>
+    <li>Mean of \(mn\) pixels in a flat area: noise variance drops by \(mn\).</li>
+    <li>\(\text{SNR} = 10\log_{10}\frac{\sum f^2}{\sum\eta^2}\), \(\text{PSNR} = 10\log_{10}\frac{I_{\max}^2}{\text{MSE}}\).</li>
+    <li><strong>Non-local means</strong>: average pixels whose whole <em>neighbourhoods</em> look similar, not just nearby pixels: \(w(p,q) = e^{-\|g[S_p] - g[S_q]\|^2/2\sigma^2}\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Inverse filtering and why it explodes</h3>
+  \[ \hat F = \frac{G}{H} = F + \frac{N}{H} \]
+  <p>No noise: perfect (except where \(H = 0\)). With noise: wherever \(H\) is tiny (usually high frequencies, since blur is low-pass), \(N/H\) is huge. The result is pure noise.</p>
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":140,"x":[0,5],"y":[0,3],"xl":"frequency","curves":[{"f":"exp(-x*x/3)*2.5","c":2,"t":"|H|","tx":0.3,"tdy":-6},{"f":"0.3/max(exp(-x*x/3),0.1)","c":3,"t":"noise/|H|","tx":4.1,"tdy":-6},{"f":"0.3","c":0,"dash":true,"thin":true,"t":"noise level","tx":4.4,"tdy":14}]}'></svg>
+  </figure>
+  <p>Quick fix: inverse filter then low-pass (only invert where \(H\) is large). Better fix: Wiener.</p>
+</section>
+
+<section class="slide">
+  <h3>The Wiener filter</h3>
+  <p>Choose \(W\) to minimize the expected squared error \(\mathbb E|\hat F - F|^2\), one frequency at a time:</p>
+  \[ W = \frac{H^*S_f}{|H|^2S_f + S_\eta} = \frac{1}{H}\cdot\frac{|H|^2}{|H|^2 + S_\eta/S_f} \]
+  <ul>
+    <li>\(S_f = \mathbb E|F|^2\): power spectrum of clean images. \(S_\eta = \mathbb E|N|^2\): noise power (∝ noise variance, flat for white noise).</li>
+    <li>Often \(S_\eta/S_f\) is replaced by a constant \(K\), tuned by eye.</li>
+  </ul>
+  <h4>Minor Q3(a): the three limits</h4>
+  <table>
+    <tr><th>Case</th><th>W tends to</th><th>Why that's right</th></tr>
+    <tr><td>\(H \to 0\)</td><td>\(H^*S_f/S_\eta \to 0\)</td><td>That frequency was destroyed; inverting would only amplify noise. Output 0 instead of infinity.</td></tr>
+    <tr><td>\(S_f \to 0\)</td><td>0</td><td>The clean image has nothing there; anything observed is noise. Suppress it.</td></tr>
+    <tr><td>\(S_\eta \to 0\)</td><td>\(1/H\)</td><td>No noise, so exact inversion is safe and best.</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h3>Minor Q3(b): noise-free but inverse filter still fails</h3>
+  <p><em>f (8-bit) is blurred with a known kernel (periodic padding) and saved as 8-bit g. No division by zero, yet the inverse filter fails. Why? What \(S_\eta\) should Wiener use?</em></p>
+  <ul>
+    <li>Saving g as 8-bit <strong>rounds</strong> every pixel. That rounding is noise: error uniform on \([-\tfrac12, \tfrac12]\), variance \(\tfrac{1}{12}\). (Clipping to [0, 255] also adds error.)</li>
+    <li>Where \(|H|\) is small, this tiny noise is divided by a tiny number and blows up.</li>
+    <li>Use white noise with variance \(\sigma^2 = 1/12\): \(S_\eta = MN\sigma^2 = MN/12\) (constant over frequencies, with the unnormalized DFT).</li>
+  </ul>
+  <h4>Regularized deconvolution (alternative)</h4>
+  \[ \min_{\hat f}\ \|h*\hat f - g\|^2 + \lambda\|\nabla^2\hat f\|^2 \;\Rightarrow\; \hat F = \frac{H^*}{|H|^2 + \lambda|L|^2}\,G \]
+  <p>\(L\) = DFT of the Laplacian kernel. Pick λ by eye or so the residual matches the noise energy \(MN\sigma_\eta^2\). <strong>Total variation</strong> \(\sum\|\nabla \hat f\|\) instead keeps sharp edges (no closed form; needs iterative solvers).</p>
+</section>
+
+<section class="slide">
+  <h3>Minor Q4, solved: motion blur on a conveyor</h3>
+  <p><em>Camera sees 2 m × 2 m as 1000 × 1000 px. Objects move h cm along x during the exposure.</em></p>
+  <h4>(a) PSF and transfer function</h4>
+  <ul>
+    <li>1 px = 200 cm / 1000 = 0.2 cm. Motion of h cm = \(n = 5h\) pixels.</li>
+    <li>The image is the average of \(n\) shifted copies, so the PSF is a <strong>box of length n along x</strong>, each value \(1/n\): \(h[x] = \frac1n\) for \(x = 0..n-1\), 0 elsewhere.</li>
+    <li>DFT (M = 1000): \(H[u] = \frac1n\sum_{x=0}^{n-1}e^{-2\pi iux/M}\). With the hint, \(|H[u]| \approx |\mathrm{sinc}(nu/M)|\), times a phase \(e^{-\pi iu(n-1)/M}\). \(H\) is constant along \(v\).</li>
+  </ul>
+  <h4>(b) h very large</h4>
+  <ul>
+    <li>PSF becomes a very long box: every pixel becomes the average of its whole row (in x).</li>
+    <li>\(H\) becomes a very narrow sinc: only \(u \approx 0\) survives. \(G[u,v] \approx F[0, v]\) at \(u = 0\), zero elsewhere.</li>
+    <li>So the blurred image is (constant along x) the <strong>projection</strong> of f along x, and its Fourier transform is the slice \(F(0, v)\). That is exactly the <strong>projection-slice theorem</strong>.</li>
+  </ul>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">An image has both Gaussian noise and 5% salt-and-pepper. Which single filter would you try first?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Alpha-trimmed mean: drop the highest and lowest few values in each window (removes salt and pepper), average the rest (reduces Gaussian noise).</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Write the Wiener filter when \(H = 1\) (no blur). What does it do?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(W = \frac{S_f}{S_f + S_\eta}\). Pure denoising: keep frequencies where signal power dominates (W ≈ 1), suppress where noise dominates (W ≈ 0). Since \(S_f\) drops at high frequencies, it acts like a low-pass filter.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Uniform vertical motion of 4 pixels. Write the PSF and where \(H\) is zero (N × N image).</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(h = \frac14\) at \(y = 0,1,2,3\) (x = 0), else 0. \(H[u,v] = \frac14\sum_{y=0}^{3}e^{-2\pi ivy/N}\), zero when \(4v/N\) is a nonzero integer, i.e. \(v = N/4, N/2, 3N/4\). Those frequencies are lost; the inverse filter divides by 0 there.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · restoration</h3>
+  <ul>
+    <li>\(g = h*f+\eta\), \(G = HF+N\); h = PSF</li>
+    <li>Gauss → mean; S&amp;P → <b>median</b>; both → α-trimmed</li>
+    <li>Mean of mn: var ÷ mn; NLM: compare patches</li>
+    <li><b>Inverse</b> \(G/H = F + N/H\): blows up where H small</li>
+    <li><b>Wiener</b> \(W = \frac{H^*S_f}{|H|^2S_f+S_\eta}\)</li>
+    <li>H→0: W→0 · S_f→0: W→0 · S_η→0: W→1/H</li>
+    <li>8-bit rounding noise: var 1/12, \(S_\eta = MN/12\)</li>
+    <li><b>Laplacian reg.</b> \(\hat F = \frac{H^*G}{|H|^2+\lambda|L|^2}\); TV keeps edges</li>
+    <li><b>Motion</b> n px: box 1/n; \(|H|\approx|\text{sinc}(nu/M)|\)</li>
+    <li>Huge motion → projection → slice \(F(0,v)\)</li>
+  </ul>
+</div></section>
+</article>
+
+<article class="chapter" data-id="tomography" data-title="Tomography" data-tag="pre">
+<header class="ch-head">
+  <h1>Tomography: images from projections</h1>
+  <div class="ch-meta"><span>Pre-minor</span><span>Deck 12</span></div>
+</header>
+
+<section class="slide">
+  <h3>CT measures line integrals</h3>
+  <p>X-rays lose energy passing through tissue with absorption \(\mu(x,y)\):</p>
+  \[ I = I_0\exp\!\Big(-\int\mu\,dl\Big) \;\Rightarrow\; -\ln\frac{I}{I_0} = \int\mu(x,y)\,dl \quad(\text{a raysum}) \]
+  <p>The <strong>Radon transform</strong> collects raysums along every line \(x\cos\theta + y\sin\theta = \rho\):</p>
+  \[ g_\theta(\rho) = \iint f(x,y)\,\delta(x\cos\theta + y\sin\theta - \rho)\,dx\,dy \]
+  <figure class="row">
+    <div style="flex:0 0 200px">
+      <svg class="fig" viewBox="0 0 200 180">
+        <circle cx="90" cy="95" r="45" class="soft1" style="stroke:var(--safe)"/>
+        <g class="c0 thin dash"><path d="M20 50H170M20 75H170M20 95H170M20 115H170M20 140H170"/></g>
+        <path d="M175 50 Q190 50 190 95 Q190 140 175 140" class="c2"/>
+        <text x="90" y="172" class="mid sm">parallel rays at angle θ</text>
+        <text x="160" y="40" class="sm lbl2">g<tspan baseline-shift="sub" font-size="8">θ</tspan>(ρ)</text>
+      </svg>
+    </div>
+    <div>
+      <p>Disk of radius r, value A:</p>
+      \[ g_\theta(\rho) = \begin{cases}2A\sqrt{r^2 - \rho^2} & |\rho| &lt; r\\ 0 & \text{else}\end{cases} \]
+      <p>(Chord length × A.) Same for every θ because the disk is symmetric.</p>
+      <p>A <strong>sinogram</strong> shows \(g_\theta(\rho)\) as an image with axes (ρ, θ). A single point traces a sinusoid.</p>
+    </div>
+  </figure>
+</section>
+
+<section class="slide">
+  <h3>Backprojection</h3>
+  <p>Smear each projection back across the image along its rays, then add over all angles:</p>
+  \[ f_\theta(x,y) = g_\theta(x\cos\theta + y\sin\theta), \qquad \hat f(x,y) = \int_0^\pi f_\theta(x,y)\,d\theta \]
+  <p>This "laminogram" is <strong>blurry</strong>: every point becomes a star of lines, i.e. a halo that falls off like \(1/r\). More angles help but never remove the blur.</p>
+</section>
+
+<section class="slide">
+  <h3>Projection-slice theorem</h3>
+  \[ G_\theta(\omega) = F(\omega\cos\theta,\ \omega\sin\theta) \]
+  <p>The 1D Fourier transform of one projection = one line (slice) through the 2D Fourier transform of the image, at the same angle.</p>
+  <p><strong>Proof for θ = 0</strong>: \(g_0(\rho) = \int f(\rho, y)\,dy\). Its transform \(G_0(\omega) = \iint f(\rho,y)e^{-2\pi i\omega\rho}\,d\rho\,dy = F(\omega, 0)\). Rotation does the rest.</p>
+  <figure>
+    <svg class="fig" viewBox="0 0 220 200" style="max-width:240px">
+      <rect x="10" y="10" width="200" height="180" class="fr"/>
+      <g class="c1 thin"><path d="M110 100 L200 100M110 100 L20 100M110 100 L188 55M110 100 L32 145M110 100 L155 22M110 100 L65 178M110 100 L110 15M110 100 L110 185M110 100 L65 22M110 100 L155 178M110 100 L32 55M110 100 L188 145"/></g>
+      <circle cx="110" cy="100" r="5" class="f0"/>
+      <text x="115" y="196" class="sm">slices crowd near the centre</text>
+    </svg>
+  </figure>
+</section>
+
+<section class="slide">
+  <h3>Filtered backprojection</h3>
+  <p>The slices fill the 2D frequency plane, but crowd near the centre: density ∝ \(1/|\omega|\). Plain backprojection over-weights low frequencies → blur. Fix: weight each slice by \(|\omega|\) first.</p>
+  <ol>
+    <li>For each θ: \(G_\theta = \mathcal F(g_\theta)\).</li>
+    <li>Multiply by the ramp \(|\omega|\) (times a smooth window).</li>
+    <li>Inverse transform → filtered projection \(\tilde g_\theta\).</li>
+    <li>Backproject \(\tilde g_\theta\) and add.</li>
+  </ol>
+  <figure>
+    <svg class="plot" data-plot='{"w":420,"h":130,"x":[-1,1],"y":[0,1.1],"xl":"ω","curves":[{"f":"abs(x)","c":0,"dash":true,"thin":true,"t":"|ω|","tx":0.85,"tdy":-6},{"f":"abs(x)*(0.54+0.46*cos(PI*x))","c":1,"t":"|ω| × Hamming","tx":0.25,"tdy":-12}]}'></svg>
+  </figure>
+  <ul>
+    <li>\(|\omega|\) alone is not square-integrable and boosts noise; a hard cutoff rings.</li>
+    <li>Use a smooth window, e.g. \(c + (1-c)\cos(2\pi\omega/M)\), \(c = 0.54\) (Hamming).</li>
+    <li>In practice: convolve each \(g_\theta\) with \(\mathcal F^{-1}(H(\omega)|\omega|)\).</li>
+  </ul>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">What is the Radon transform of a single point \(\delta(x - x_0, y - y_0)\)?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(g_\theta(\rho) = \delta(\rho - (x_0\cos\theta + y_0\sin\theta))\). For each θ a spike at \(\rho = x_0\cos\theta + y_0\sin\theta\): a sinusoid in the sinogram. (Same curve as in the Hough transform.)</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Why is simple backprojection blurry, and what does the ramp filter fix?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>By projection-slice, backprojecting adds Fourier slices through the origin. Low frequencies get contributions from every slice; high frequencies from few. So low frequencies are over-weighted by \(1/|\omega|\) → blur. Multiplying by \(|\omega|\) evens it out.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · tomography</h3>
+  <ul>
+    <li>Raysum \(-\ln(I/I_0) = \int\mu\,dl\)</li>
+    <li><b>Radon</b> \(g_\theta(\rho) = \iint f\,\delta(x\cos\theta+y\sin\theta-\rho)\)</li>
+    <li>Disk: \(2A\sqrt{r^2-\rho^2}\); point → sinusoid</li>
+    <li><b>Backproj.</b> \(\hat f = \int_0^\pi g_\theta(x\cos\theta+y\sin\theta)\,d\theta\): 1/r blur</li>
+    <li><b>Proj-slice</b> \(G_\theta(\omega) = F(\omega\cos\theta,\omega\sin\theta)\)</li>
+    <li><b>FBP</b>: \(|\omega|\) × window (Hamming c = 0.54), then backproject</li>
+  </ul>
+</div></section>
+</article>
+
       <nav class="ch-nav" id="chnav"></nav>
     </div>
   </main>

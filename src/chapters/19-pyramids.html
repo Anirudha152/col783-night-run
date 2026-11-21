@@ -1,0 +1,132 @@
+<article class="chapter" data-id="pyramids" data-title="Pyramids and Haar" data-tag="post">
+<header class="ch-head">
+  <h1>Image pyramids and the Haar transform</h1>
+  <div class="ch-meta"><span>Post-minor</span><span>Deck 16 · Quiz 3 Q4</span></div>
+</header>
+
+<section class="slide">
+  <h3>A pyramid = the image at many sizes</h3>
+  <figure class="row">
+    <div style="flex:0 0 220px">
+      <svg class="fig" viewBox="0 0 220 170">
+        <rect x="10" y="10" width="128" height="128" class="fr" style="stroke:var(--line-2)"/>
+        <rect x="148" y="74" width="64" height="64" class="fr" style="stroke:var(--line-2)"/>
+        <rect x="180" y="42" width="32" height="32" class="fl"/>
+        <rect x="196" y="26" width="16" height="16" class="f1"/>
+        <text x="74" y="156" class="mid sm">fine (level 0)</text><text x="196" y="156" class="mid sm">coarse →</text>
+      </svg>
+    </div>
+    <div>
+      <p>Each level halves the width and height. Total storage:</p>
+      \[ N^2\Big(1 + \tfrac14 + \tfrac1{16} + \cdots\Big) \le \tfrac43 N^2 \]
+      <p>Two kinds:</p>
+      <ul>
+        <li><strong>Approximation pyramid</strong>: blurred and shrunk copies.</li>
+        <li><strong>Prediction residual pyramid</strong>: what each level adds on top of the coarser one.</li>
+      </ul>
+    </div>
+  </figure>
+</section>
+
+<section class="slide">
+  <h3>Building the two pyramids</h3>
+  <h4>Approximation (reduce)</h4>
+  \[ a_{j-1} = \downarrow_2 (h * a_j), \qquad a_0 = f \]
+  <ul>
+    <li>Filter, then keep every second sample. The filter prevents aliasing.</li>
+    <li>2 × 2 mean → mean pyramid. Gaussian (e.g. \(\frac1{16}[1\,4\,6\,4\,1]\)) → <strong>Gaussian pyramid</strong>. No filter → subsampling pyramid (aliased).</li>
+  </ul>
+  <h4>Residual (expand and subtract)</h4>
+  \[ d_j = a_j - \text{expand}(a_{j-1}) = a_j - h * \uparrow_2(a_{j-1}) \]
+  <ul>
+    <li>Store \(d_0, d_{-1}, \dots\) plus the coarsest \(a\). You can rebuild \(f\) exactly: \(a_j = \text{expand}(a_{j-1}) + d_j\).</li>
+    <li>Gaussian filters for both steps → <strong>Laplacian pyramid</strong>, because \(d_j \approx \nabla^2(G * f)\): a band-pass image.</li>
+  </ul>
+  <p>Uses: mipmapping in graphics, multi-scale blob detection (\(|d_j|\)), seamless image blending.</p>
+</section>
+
+<section class="slide">
+  <h3>Quiz 3 Q4, solved</h3>
+  <p><em>\(f = [0, 16, 0, 0, 0]\). 3-level approximation pyramid with \(h = [\frac14, \frac12, \frac14]\), zero padding. Then the residual pyramid with linear interpolation.</em></p>
+  <h4>Approximation pyramid</h4>
+  <ol>
+    <li>\(h * f\): each output = \((f[i-1] + 2f[i] + f[i+1])/4\) → \([4, 8, 4, 0, 0]\). Keep positions 0, 2, 4 → \(a_{-1} = [4, 4, 0]\).</li>
+    <li>\(h * a_{-1}\) → \([(0+8+4)/4,\ (4+8+0)/4,\ (4+0+0)/4] = [3, 3, 1]\). Keep 0, 2 → \(a_{-2} = [3, 1]\).</li>
+  </ol>
+  <div class="grids">
+    <div><div class="grid num" data-grid="0 16* 0 0 0"></div><span class="cap">a₀</span></div>
+    <div><div class="grid num" data-grid="4 4 0"></div><span class="cap">a₋₁</span></div>
+    <div><div class="grid num" data-grid="3 1"></div><span class="cap">a₋₂</span></div>
+  </div>
+  <h4>Residual pyramid</h4>
+  <ol>
+    <li>Expand \(a_{-2} = [3, 1]\) to 3 samples (old samples at even spots, midpoints averaged): \([3, 2, 1]\). \(d_{-1} = [4,4,0] - [3,2,1] = [1, 2, -1]\).</li>
+    <li>Expand \(a_{-1} = [4,4,0]\) to 5 samples: \([4, 4, 4, 2, 0]\). \(d_0 = [0,16,0,0,0] - [4,4,4,2,0] = [-4, 12, -4, -2, 0]\).</li>
+  </ol>
+  <div class="grids">
+    <div><div class="grid num" data-grid="-4 12* -4 -2 0"></div><span class="cap">d₀</span></div>
+    <div><div class="grid num" data-grid="1 2 -1"></div><span class="cap">d₋₁</span></div>
+    <div><div class="grid num" data-grid="3 1"></div><span class="cap">a₋₂ (kept)</span></div>
+  </div>
+  <div class="note"><b>Check yourself.</b> expand(a₋₁) + d₀ must give back f. \([4,4,4,2,0] + [-4,12,-4,-2,0] = [0,16,0,0,0]\). ✓</div>
+</section>
+
+<section class="slide">
+  <h3>The Haar transform in 1D</h3>
+  <p>Use a width-2 average as the approximation. To undo it you only need the pairwise differences.</p>
+  <table class="mono">
+    <tr><th>f</th><td>10 12 14 8 6 4 2 0</td></tr>
+    <tr><th>averages a₋₁</th><td>11 11 5 1</td></tr>
+    <tr><th>differences d₋₁</th><td>−2 6 2 2</td></tr>
+  </table>
+  <p>Rebuild: each pair = \(a \pm d/2\). E.g. \(11 \pm 1\) → 10, 12.</p>
+  <p>Repeat on the averages: \(a_{-2} = [11, 3]\), \(d_{-2} = [0, 4]\); \(a_{-3} = [7]\), \(d_{-3} = [8]\). Result: \([7, 8, 0, 4, -2, 6, 2, 2]\).</p>
+  <h4>Make it orthonormal</h4>
+  <p>Averages/differences are not orthonormal. Use \(\frac{x+y}{\sqrt2}\) and \(\frac{x-y}{\sqrt2}\) instead:</p>
+  <table class="mono">
+    <tr><th>a₋₁</th><td>11√2, 11√2, 5√2, √2</td><th>d₋₁</th><td>−√2, 3√2, √2, √2</td></tr>
+    <tr><th>a₋₂</th><td>22, 6</td><th>d₋₂</th><td>0, 4</td></tr>
+    <tr><th>a₋₃</th><td>14√2</td><th>d₋₃</th><td>8√2</td></tr>
+  </table>
+  <p>That is the <strong>Haar transform</strong>. Energy is preserved: \(\sum f^2 = \sum t^2\).</p>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text"><span class="q-src">Quiz 3 Q4 variant</span>\(f = [8, 0, 0, 0, 8]\), \(h = [\frac14,\frac12,\frac14]\), zero padding. Find \(a_{-1}\), \(a_{-2}\), and \(d_0\).</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>\(h*f = [4, 2, 0, 2, 4]\). Keep 0, 2, 4: \(a_{-1} = [4, 0, 4]\).</p>
+      <p>\(h*a_{-1} = [2, 2, 2]\). Keep 0, 2: \(a_{-2} = [2, 2]\).</p>
+      <p>expand\((a_{-1}) = [4, 2, 0, 2, 4]\). \(d_0 = [8,0,0,0,8] - [4,2,0,2,4] = [4, -2, 0, -2, 4]\).</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Compute the orthonormal Haar transform of \([4, 6, 10, 12]\). Check energy.</div>
+    <details class="ans"><summary>Answer</summary><div class="body">
+      <p>\(a_{-1} = [10/\sqrt2, 22/\sqrt2] = [5\sqrt2, 11\sqrt2]\), \(d_{-1} = [-\sqrt2, -\sqrt2]\).</p>
+      <p>\(a_{-2} = (5\sqrt2 + 11\sqrt2)/\sqrt2 = 16\), \(d_{-2} = -6\).</p>
+      <p>\(t = [16, -6, -\sqrt2, -\sqrt2]\). Energy: \(16 + 36 + 100 + 144 = 296 = 256 + 36 + 2 + 2\). ✓</p>
+    </div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">How much more memory does a full Laplacian pyramid need than the image?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>At most \(\frac43\) of the image, so about 33% extra (in 2D). In 1D it is up to 2×.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · pyramids, Haar</h3>
+  <ul>
+    <li>Storage ≤ \(\frac43N^2\)</li>
+    <li><b>Reduce</b> \(a_{j-1} = \downarrow_2(h*a_j)\); keep even indices</li>
+    <li><b>Residual</b> \(d_j = a_j - h*\uparrow_2 a_{j-1}\)</li>
+    <li>Gaussian+Gaussian → Laplacian pyramid (band-pass)</li>
+    <li>\(h=[\frac14\ \frac12\ \frac14]\): out \(=(f_{i-1}+2f_i+f_{i+1})/4\)</li>
+    <li>Linear expand: copy at even, average at odd</li>
+    <li>Q3 Q4: \(a = [0,16,0,0,0],[4,4,0],[3,1]\); \(d = [-4,12,-4,-2,0],[1,2,-1]\)</li>
+    <li><b>Haar</b>: \((x+y)/\sqrt2\), \((x-y)/\sqrt2\), recurse on a</li>
+    <li>Unnormalized: mean, diff; rebuild \(a\pm d/2\)</li>
+  </ul>
+</div></section>
+</article>

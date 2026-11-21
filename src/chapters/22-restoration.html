@@ -1,0 +1,124 @@
+<article class="chapter" data-id="restoration" data-title="Denoising and Wiener" data-tag="pre">
+<header class="ch-head">
+  <h1>Restoration: noise, blur, Wiener</h1>
+  <div class="ch-meta"><span>Pre-minor</span><span>Deck 10, 11, 12 · Minor Q3, Q4</span></div>
+</header>
+
+<section class="slide">
+  <h3>The degradation model</h3>
+  \[ g = h * f + \eta \qquad\Longleftrightarrow\qquad G = HF + N \]
+  <ul>
+    <li>\(h\) = <strong>point spread function</strong> (PSF): what a single bright point turns into. It models blur.</li>
+    <li>\(\eta\) = additive noise.</li>
+    <li>Works when the blur is linear and the same everywhere (translation-invariant). Defocus and uniform motion: yes. Blur that varies across the image: no.</li>
+  </ul>
+  <p>Get \(h\) by observation (find a point-like feature), by experiment (photograph a point source), or by a model (e.g. motion, atmospheric turbulence \(H = e^{-k(u^2+v^2)^{5/6}}\)).</p>
+</section>
+
+<section class="slide">
+  <h3>Noise models and which filter fixes them</h3>
+  <table>
+    <tr><th>Noise</th><th>Looks like</th><th>Best spatial filter</th></tr>
+    <tr><td>Gaussian</td><td>grain everywhere</td><td>mean / Gaussian (or bilateral, NLM)</td></tr>
+    <tr><td>Uniform</td><td>grain, flat histogram</td><td>mean</td></tr>
+    <tr><td>Salt-and-pepper</td><td>isolated white/black dots</td><td><strong>median</strong></td></tr>
+    <tr><td>Uniform + salt-and-pepper</td><td>both</td><td><strong>alpha-trimmed mean</strong></td></tr>
+    <tr><td>Poisson (shot)</td><td>worse in bright, low-light</td><td>—</td></tr>
+  </table>
+  <ul>
+    <li>Estimate noise: image a flat scene or find a flat patch; its histogram shape gives the type, its variance gives the strength. (Assume mean 0, since a constant offset can't be told apart from the image.)</li>
+    <li>Mean of \(mn\) pixels in a flat area: noise variance drops by \(mn\).</li>
+    <li>\(\text{SNR} = 10\log_{10}\frac{\sum f^2}{\sum\eta^2}\), \(\text{PSNR} = 10\log_{10}\frac{I_{\max}^2}{\text{MSE}}\).</li>
+    <li><strong>Non-local means</strong>: average pixels whose whole <em>neighbourhoods</em> look similar, not just nearby pixels: \(w(p,q) = e^{-\|g[S_p] - g[S_q]\|^2/2\sigma^2}\).</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h3>Inverse filtering and why it explodes</h3>
+  \[ \hat F = \frac{G}{H} = F + \frac{N}{H} \]
+  <p>No noise: perfect (except where \(H = 0\)). With noise: wherever \(H\) is tiny (usually high frequencies, since blur is low-pass), \(N/H\) is huge. The result is pure noise.</p>
+  <figure>
+    <svg class="plot" data-plot='{"w":520,"h":140,"x":[0,5],"y":[0,3],"xl":"frequency","curves":[{"f":"exp(-x*x/3)*2.5","c":2,"t":"|H|","tx":0.3,"tdy":-6},{"f":"0.3/max(exp(-x*x/3),0.1)","c":3,"t":"noise/|H|","tx":4.1,"tdy":-6},{"f":"0.3","c":0,"dash":true,"thin":true,"t":"noise level","tx":4.4,"tdy":14}]}'></svg>
+  </figure>
+  <p>Quick fix: inverse filter then low-pass (only invert where \(H\) is large). Better fix: Wiener.</p>
+</section>
+
+<section class="slide">
+  <h3>The Wiener filter</h3>
+  <p>Choose \(W\) to minimize the expected squared error \(\mathbb E|\hat F - F|^2\), one frequency at a time:</p>
+  \[ W = \frac{H^*S_f}{|H|^2S_f + S_\eta} = \frac{1}{H}\cdot\frac{|H|^2}{|H|^2 + S_\eta/S_f} \]
+  <ul>
+    <li>\(S_f = \mathbb E|F|^2\): power spectrum of clean images. \(S_\eta = \mathbb E|N|^2\): noise power (∝ noise variance, flat for white noise).</li>
+    <li>Often \(S_\eta/S_f\) is replaced by a constant \(K\), tuned by eye.</li>
+  </ul>
+  <h4>Minor Q3(a): the three limits</h4>
+  <table>
+    <tr><th>Case</th><th>W tends to</th><th>Why that's right</th></tr>
+    <tr><td>\(H \to 0\)</td><td>\(H^*S_f/S_\eta \to 0\)</td><td>That frequency was destroyed; inverting would only amplify noise. Output 0 instead of infinity.</td></tr>
+    <tr><td>\(S_f \to 0\)</td><td>0</td><td>The clean image has nothing there; anything observed is noise. Suppress it.</td></tr>
+    <tr><td>\(S_\eta \to 0\)</td><td>\(1/H\)</td><td>No noise, so exact inversion is safe and best.</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h3>Minor Q3(b): noise-free but inverse filter still fails</h3>
+  <p><em>f (8-bit) is blurred with a known kernel (periodic padding) and saved as 8-bit g. No division by zero, yet the inverse filter fails. Why? What \(S_\eta\) should Wiener use?</em></p>
+  <ul>
+    <li>Saving g as 8-bit <strong>rounds</strong> every pixel. That rounding is noise: error uniform on \([-\tfrac12, \tfrac12]\), variance \(\tfrac{1}{12}\). (Clipping to [0, 255] also adds error.)</li>
+    <li>Where \(|H|\) is small, this tiny noise is divided by a tiny number and blows up.</li>
+    <li>Use white noise with variance \(\sigma^2 = 1/12\): \(S_\eta = MN\sigma^2 = MN/12\) (constant over frequencies, with the unnormalized DFT).</li>
+  </ul>
+  <h4>Regularized deconvolution (alternative)</h4>
+  \[ \min_{\hat f}\ \|h*\hat f - g\|^2 + \lambda\|\nabla^2\hat f\|^2 \;\Rightarrow\; \hat F = \frac{H^*}{|H|^2 + \lambda|L|^2}\,G \]
+  <p>\(L\) = DFT of the Laplacian kernel. Pick λ by eye or so the residual matches the noise energy \(MN\sigma_\eta^2\). <strong>Total variation</strong> \(\sum\|\nabla \hat f\|\) instead keeps sharp edges (no closed form; needs iterative solvers).</p>
+</section>
+
+<section class="slide">
+  <h3>Minor Q4, solved: motion blur on a conveyor</h3>
+  <p><em>Camera sees 2 m × 2 m as 1000 × 1000 px. Objects move h cm along x during the exposure.</em></p>
+  <h4>(a) PSF and transfer function</h4>
+  <ul>
+    <li>1 px = 200 cm / 1000 = 0.2 cm. Motion of h cm = \(n = 5h\) pixels.</li>
+    <li>The image is the average of \(n\) shifted copies, so the PSF is a <strong>box of length n along x</strong>, each value \(1/n\): \(h[x] = \frac1n\) for \(x = 0..n-1\), 0 elsewhere.</li>
+    <li>DFT (M = 1000): \(H[u] = \frac1n\sum_{x=0}^{n-1}e^{-2\pi iux/M}\). With the hint, \(|H[u]| \approx |\mathrm{sinc}(nu/M)|\), times a phase \(e^{-\pi iu(n-1)/M}\). \(H\) is constant along \(v\).</li>
+  </ul>
+  <h4>(b) h very large</h4>
+  <ul>
+    <li>PSF becomes a very long box: every pixel becomes the average of its whole row (in x).</li>
+    <li>\(H\) becomes a very narrow sinc: only \(u \approx 0\) survives. \(G[u,v] \approx F[0, v]\) at \(u = 0\), zero elsewhere.</li>
+    <li>So the blurred image is (constant along x) the <strong>projection</strong> of f along x, and its Fourier transform is the slice \(F(0, v)\). That is exactly the <strong>projection-slice theorem</strong>.</li>
+  </ul>
+</section>
+
+<section class="slide practice">
+  <h3>Exam-style practice</h3>
+  <div class="q">
+    <div class="q-text">An image has both Gaussian noise and 5% salt-and-pepper. Which single filter would you try first?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>Alpha-trimmed mean: drop the highest and lowest few values in each window (removes salt and pepper), average the rest (reduces Gaussian noise).</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Write the Wiener filter when \(H = 1\) (no blur). What does it do?</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(W = \frac{S_f}{S_f + S_\eta}\). Pure denoising: keep frequencies where signal power dominates (W ≈ 1), suppress where noise dominates (W ≈ 0). Since \(S_f\) drops at high frequencies, it acts like a low-pass filter.</p></div></details>
+  </div>
+  <div class="q">
+    <div class="q-text">Uniform vertical motion of 4 pixels. Write the PSF and where \(H\) is zero (N × N image).</div>
+    <details class="ans"><summary>Answer</summary><div class="body"><p>\(h = \frac14\) at \(y = 0,1,2,3\) (x = 0), else 0. \(H[u,v] = \frac14\sum_{y=0}^{3}e^{-2\pi ivy/N}\), zero when \(4v/N\) is a nonzero integer, i.e. \(v = N/4, N/2, 3N/4\). Those frequencies are lost; the inverse filter divides by 0 there.</p></div></details>
+  </div>
+</section>
+
+<section class="slide sheet"><div class="card">
+  <h3>Cheat sheet · restoration</h3>
+  <ul>
+    <li>\(g = h*f+\eta\), \(G = HF+N\); h = PSF</li>
+    <li>Gauss → mean; S&amp;P → <b>median</b>; both → α-trimmed</li>
+    <li>Mean of mn: var ÷ mn; NLM: compare patches</li>
+    <li><b>Inverse</b> \(G/H = F + N/H\): blows up where H small</li>
+    <li><b>Wiener</b> \(W = \frac{H^*S_f}{|H|^2S_f+S_\eta}\)</li>
+    <li>H→0: W→0 · S_f→0: W→0 · S_η→0: W→1/H</li>
+    <li>8-bit rounding noise: var 1/12, \(S_\eta = MN/12\)</li>
+    <li><b>Laplacian reg.</b> \(\hat F = \frac{H^*G}{|H|^2+\lambda|L|^2}\); TV keeps edges</li>
+    <li><b>Motion</b> n px: box 1/n; \(|H|\approx|\text{sinc}(nu/M)|\)</li>
+    <li>Huge motion → projection → slice \(F(0,v)\)</li>
+  </ul>
+</div></section>
+</article>
