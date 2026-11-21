@@ -8,7 +8,19 @@
   <h3>Erosion = min, dilation = max</h3>
   <p>For a gray image \(f\) and a <em>flat</em> SE \(b\) (just a set of offsets):</p>
   \[ (f \ominus b)[x,y] = \min_{(s,t)\in b} f[x+s, y+t] \qquad (f \oplus b)[x,y] = \max_{(s,t)\in b} f[x-s, y-t] \]
-  <p>So erosion is a <strong>min filter</strong> and dilation is a <strong>max filter</strong>. Erosion makes bright regions shrink and dark regions grow.</p>
+  <p>In words: put the SE window on pixel \((x, y)\). The offsets \((s, t)\) list the neighbours inside the window.</p>
+  <ul>
+    <li><strong>Erosion</strong>: new value = the <em>smallest</em> value under the window.</li>
+    <li><strong>Dilation</strong>: new value = the <em>largest</em> value under the window.</li>
+    <li>The minus signs in dilation just flip the SE through its centre (\(\hat b\)). For symmetric SEs (3 × 3 box, centred line) the flip changes nothing, so ignore it.</li>
+  </ul>
+  <div class="grids">
+    <div><div class="grid num" data-grid="4 7 2*/5 6 9!/3 8 5"></div><span class="cap">3 × 3 window, centre = 6</span></div>
+    <span class="op">→</span>
+    <div><div class="grid num" data-grid="2*"></div><span class="cap">erosion: min</span></div>
+    <div><div class="grid num" data-grid="9!"></div><span class="cap">dilation: max</span></div>
+  </div>
+  <p>So erosion is a <strong>min filter</strong> and dilation is a <strong>max filter</strong>. Same as the median filter, but take the min or max instead of the middle value. Erosion makes bright regions shrink and dark regions grow.</p>
   <h4>1D example, SE width 3</h4>
   <div class="tbl-wrap"><table class="mono">
     <tr><th>f</th><td>2</td><td>2</td><td>5</td><td>9</td><td>9</td><td>3</td><td>3</td><td>8</td><td>2</td><td>2</td></tr>
