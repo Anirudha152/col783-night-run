@@ -206,7 +206,7 @@
     const st = $('#status');
     const mins = p.delta / 60000;
     st.className = 'status ' + (Math.abs(mins) < 3 ? 'is-ontrack' : mins > 0 ? 'is-ahead' : 'is-behind');
-    $('#delta').textContent = (mins >= 0 ? '+' : '−') + fmtDur(Math.abs(p.delta));
+    $('#delta').textContent = Math.round(Math.abs(mins)) === 0 ? '0m' : (mins > 0 ? '+' : '−') + fmtDur(Math.abs(p.delta));
     $('#word').textContent = Math.abs(mins) < 3 ? 'on track' : mins > 0 ? 'ahead' : 'behind';
     $('#fill').style.width = (100 * p.doneN / p.total) + '%';
     $('#btick').style.left = `calc(${(100 * p.expected / p.total).toFixed(2)}% - 1px)`;
@@ -339,6 +339,15 @@
     requestAnimationFrame(() => slidesOf(id).forEach((s) => { above[s.dataset.sid] = s.getBoundingClientRect().bottom < innerHeight * 0.3; }));
   }
 
+  const seen = {};
+  setInterval(() => {
+    if (document.hidden) return;
+    slidesOf(current).forEach((s) => {
+      const r = s.getBoundingClientRect();
+      if (r.bottom > 0 && r.top < innerHeight) seen[s.dataset.sid] = (seen[s.dataset.sid] || 0) + 1;
+    });
+  }, 1000);
+
   let ticking = false;
   window.addEventListener('scroll', () => {
     if (ticking) return; ticking = true;
@@ -347,7 +356,7 @@
       slidesOf(current).forEach((s) => {
         const sid = s.dataset.sid;
         const now = s.getBoundingClientRect().bottom < innerHeight * 0.3;
-        if (now && above[sid] === false && !done[sid]) setDone(sid, true);
+        if (now && above[sid] === false && !done[sid] && (seen[sid] || 0) >= 6) setDone(sid, true);
         above[sid] = now;
       });
     });
