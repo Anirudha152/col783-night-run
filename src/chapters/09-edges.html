@@ -68,6 +68,18 @@
     <li>\(\nabla^2 g\): the dip bottom curves upward, so \(\nabla^2 g > 0\) in the middle and \(< 0\) on the shoulders.</li>
     <li><strong>Two zero crossings</strong>, one on each side of the line. Those are the edges (the line's two borders), where \(|dg/dx|\) peaks.</li>
   </ul>
+  <h4>Does the width of the line matter? Yes.</h4>
+  <p>\(g\) = (box of width \(w\)) * (Gaussian of width \(\sigma\)). What you get depends on which is wider.</p>
+  <ul>
+    <li><strong>Narrow line</strong> (\(w\) small next to \(\sigma\)), the case in the quiz: the box acts like a spike, so \(g\) ≈ a Gaussian dip with a round bottom (the plots above). The blur also makes the dip <strong>shallower</strong>. The zero crossings land where the dip bends, about \(\pm\sqrt{\sigma^2 + w^2/12}\): a bit <strong>outside</strong> the true borders.</li>
+    <li><strong>Wide line</strong> (\(w\) big next to \(\sigma\)): the two borders are blurred separately and don't touch. \(g\) has a <strong>flat bottom</strong>. \(dg/dx\) is two separate bumps with 0 between them. \(\nabla^2 g\) is − + (zero) + − and crosses zero exactly at the two true borders.</li>
+  </ul>
+  <figure class="row">
+    <div><svg class="plot" data-plot='{"w":200,"h":110,"x":[-4.5,4.5],"y":[-0.1,1.1],"curves":[{"f":"abs(x)<1.8?0.1:1","c":0,"n":1600,"thin":true,"dash":true},{"f":"1-0.9*(0.5*(1+tanh(1.5*(x+1.8)))-0.5*(1+tanh(1.5*(x-1.8))))","c":2}]}'></svg><div class="cap">wide line: g has a flat bottom</div></div>
+    <div><svg class="plot" data-plot='{"w":200,"h":110,"x":[-4.5,4.5],"y":[-0.8,0.8],"curves":[{"f":"-0.9*(0.75/pow(cosh(1.5*(x+1.8)),2)-0.75/pow(cosh(1.5*(x-1.8)),2))","c":1}]}'></svg><div class="cap">dg/dx: two separate bumps</div></div>
+    <div><svg class="plot" data-plot='{"w":200,"h":110,"x":[-4.5,4.5],"y":[-0.9,0.9],"curves":[{"f":"-0.9*((-2.25*tanh(1.5*(x+1.8))/pow(cosh(1.5*(x+1.8)),2))-(-2.25*tanh(1.5*(x-1.8))/pow(cosh(1.5*(x-1.8)),2)))","c":3}],"dots":[{"x":-1.8,"y":0,"c":1,"r":5},{"x":1.8,"y":0,"c":1,"r":5}]}'></svg><div class="cap">∇²g: zero crossings at the true borders</div></div>
+  </figure>
+  <div class="note"><b>Exam tip.</b> If the question says "narrow" or "thin" line, draw the round-bottom version. Either way, Marr-Hildreth gives <strong>two</strong> edges, one per border, never one in the middle.</div>
 </section>
 
 <section class="slide">
