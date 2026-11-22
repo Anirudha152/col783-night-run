@@ -84,11 +84,19 @@
 
 <section class="slide">
   <h3>Canny edge detector</h3>
+  <p><strong>Idea</strong>: an edge is where the brightness changes fastest, i.e. where the <strong>gradient magnitude peaks</strong> as you walk across the edge. (Marr-Hildreth instead looks where the 2nd derivative crosses zero.)</p>
   <ol>
-    <li>Smooth: \(g = G * f\).</li>
-    <li>Gradient magnitude and direction of \(g\).</li>
-    <li><strong>Non-maximum suppression</strong>: look at the two neighbours <em>along the gradient direction</em>. If either has bigger \(\|\nabla g\|\), set this pixel to 0. Edges become 1 pixel thin.</li>
-    <li><strong>Hysteresis thresholding</strong>: high threshold → strong pixels; low threshold → weak pixels. Keep weak pixels only if connected to strong ones.</li>
+    <li><strong>Smooth</strong> with a Gaussian: \(g = G_\sigma * f\). Removes noise; σ picks the scale (bigger σ = only big, strong edges).</li>
+    <li><strong>Gradient</strong> of \(g\) (e.g. Sobel): \(M = \sqrt{g_x^2 + g_y^2}\) (strength) and \(\theta = \operatorname{atan2}(g_y, g_x)\) (direction). θ points <em>across</em> the edge, from dark to bright.</li>
+    <li><strong>Non-maximum suppression (NMS)</strong>: after blurring, \(M\) is a thick ridge several pixels wide. Keep only the top of the ridge. Round θ to one of 4 directions (0°, 45°, 90°, 135°). Compare \(M\) with its 2 neighbours along θ. If either is bigger, set \(M = 0\). Edges become 1 pixel thin.</li>
+    <li><strong>Hysteresis thresholding</strong> with two thresholds \(T_{\text{low}} &lt; T_{\text{high}}\) (ratio about 1 : 2 or 1 : 3):
+      <ul>
+        <li>\(M \ge T_{\text{high}}\): <strong>strong</strong>, surely an edge.</li>
+        <li>\(T_{\text{low}} \le M &lt; T_{\text{high}}\): <strong>weak</strong>, kept only if connected (8-neighbours, through other weak pixels) to a strong pixel.</li>
+        <li>\(M &lt; T_{\text{low}}\): dropped.</li>
+      </ul>
+      This is morphological reconstruction: marker = strong pixels, mask = strong + weak.
+    </li>
   </ol>
   <figure>
     <svg class="fig" viewBox="0 0 520 120">
@@ -106,7 +114,31 @@
       </g>
     </svg>
   </figure>
-  <p>Canny is near-optimal for a step in Gaussian noise (in 1D it is "find maxima of \(G' * f\)"). Compared with Marr-Hildreth: thinner, cleaner, fewer spurious loops.</p>
+  <h4>Worked: NMS across a vertical edge</h4>
+  <div class="tbl-wrap"><table class="mono">
+    <tr><th>M along θ (left → right)</th><td>2</td><td>5</td><td>9</td><td>7</td><td>3</td></tr>
+    <tr><th>after NMS</th><td>0</td><td>0</td><td>9</td><td>0</td><td>0</td></tr>
+  </table></div>
+  <p>Only 9 is bigger than both its neighbours along θ. The edge is 1 pixel wide, at the true peak.</p>
+  <h4>Worked: hysteresis along an edge chain</h4>
+  <p>\(T_{\text{high}} = 10\), \(T_{\text{low}} = 5\). Pixels along a curve, in order, plus one isolated pixel:</p>
+  <div class="tbl-wrap"><table class="mono">
+    <tr><th>M</th><td>12</td><td>6</td><td>7</td><td>3</td><td>9</td><td>15</td><td>·</td><td>8 (alone)</td></tr>
+    <tr><th>class</th><td>strong</td><td>weak</td><td>weak</td><td>drop</td><td>weak</td><td>strong</td><td>·</td><td>weak</td></tr>
+    <tr><th>kept?</th><td>✓</td><td>✓</td><td>✓</td><td>✗</td><td>✓</td><td>✓</td><td>·</td><td>✗</td></tr>
+  </table></div>
+  <p>6 and 7 touch 12, and 9 touches 15, so they stay. The lone 8 touches no strong pixel: it is noise, dropped. With one threshold of 10, you'd lose 6, 7, 9 (broken edge). With one threshold of 5, you'd keep the noisy 8.</p>
+  <h4>Canny vs Marr-Hildreth</h4>
+  <table>
+    <tr><th></th><th>Marr-Hildreth</th><th>Canny</th></tr>
+    <tr><td>Uses</td><td>2nd derivative: \(\nabla^2(G * f)\) (LoG)</td><td>1st derivative: \(\nabla(G * f)\)</td></tr>
+    <tr><td>Edge is where</td><td>\(\nabla^2 g\) crosses zero</td><td>\(\|\nabla g\|\) is a local max along θ</td></tr>
+    <tr><td>Edge direction</td><td>not used (Laplacian is one number, same in all directions)</td><td>needed for NMS</td></tr>
+    <tr><td>Thin edges from</td><td>zero crossings are thin anyway</td><td>NMS</td></tr>
+    <tr><td>Threshold</td><td>one: keep a crossing if the jump \(|g(x{+}1) - g(x{-}1)|\) is big</td><td>two + hysteresis</td></tr>
+    <tr><td>Problems</td><td>2nd derivative is very noise-sensitive: spurious edges in flat noisy areas, closed "spaghetti" loops, shifted at corners</td><td>more steps; gaps at corners and junctions</td></tr>
+  </table>
+  <div class="note"><b>Link.</b> In 1D they find the same point: where \(g'\) peaks, \(g''\) is zero. In 2D they differ, because the Laplacian adds curvature <em>along</em> the edge too, not just across it. Canny is near-optimal for a step edge in Gaussian noise (1D: maxima of \(G' * f\)), so it gives thinner, cleaner, better-connected edges.</div>
 </section>
 
 <section class="slide">
@@ -175,6 +207,8 @@ circles = peaks of A</pre>
 <section class="slide sheet"><div class="card">
   <h3>Cheat sheet · edges and Hough</h3>
   <ul>
+    <li><b>Canny</b>: Gaussian → M, θ → NMS (2 nbrs along θ, 4 dirs) → hysteresis (strong ≥ T_h; weak kept if linked)</li>
+    <li>MH = zero crossing of 2nd deriv (no θ, one threshold); Canny = max of 1st deriv</li>
     <li>\(f'\) peak = edge present; \(f''\) zero crossing = location</li>
     <li>Steps: smooth → candidates → localize</li>
     <li>\(\|\nabla f\| = \sqrt{f_x^2+f_y^2}\), \(\alpha = \tan^{-1}(f_y/f_x)\), ⊥ edge</li>
