@@ -1432,7 +1432,8 @@ output any number in [low, high)</pre>
 
 <section class="slide">
   <h3>Hough transform for lines</h3>
-  <p>Edge pixels are scattered. Which straight lines pass through many of them? Use the <strong>normal form</strong>:</p>
+  <div class="note"><b>What Hough is, for any shape.</b> A <strong>voting</strong> method. (1) Write the shape as an equation with a few unknown numbers, its <strong>parameters</strong>. (2) Make a grid of counters, one cell per possible parameter value (the <strong>accumulator</strong>). (3) Every edge pixel votes for every shape that could pass through it. (4) Cells with many votes = shapes that really are in the image. Noise and gaps don't matter much: random pixels spread their votes thinly.</div>
+  <p>Edge pixels are scattered. Which straight lines pass through many of them? A line needs 2 numbers. \(y = mx + c\) fails for vertical lines (\(m = \infty\)), so use the <strong>normal form</strong>: ρ = distance from the origin, θ = angle of the line's normal.</p>
   \[ x\cos\theta + y\sin\theta = \rho \]
   <figure class="row">
     <div><svg class="plot" data-plot='{"w":220,"h":150,"x":[0,6],"y":[0,6],"xl":"x","yl":"y","curves":[{"f":"5-0.8*x","c":2,"thin":true}],"dots":[{"x":1,"y":4.2},{"x":2.5,"y":3},{"x":4,"y":1.8}]}'></svg><div class="cap">3 collinear edge pixels</div></div>
@@ -1455,9 +1456,10 @@ lines = peaks of A</pre>
   <h3>Hough for circles, and Quiz 4 Q4</h3>
   <p>General circle \((x-a)^2 + (y-b)^2 = r^2\) has 3 parameters → 3D accumulator. Too slow. Two tricks:</p>
   <ul>
-    <li><strong>Fix r</strong>: for each edge pixel, loop over θ: \(a = x - r\cos\theta,\ b = y - r\sin\theta\). 2D accumulator.</li>
+    <li><strong>Fix r</strong>: for each edge pixel, loop over an angle φ around it: \(a = x - r\cos\varphi,\ b = y - r\sin\varphi\). (Each pixel votes for a circle of possible centres.) 2D accumulator.</li>
     <li><strong>Use the gradient</strong>: the centre lies along the gradient line, so loop only over r: \(a = x \mp r\cos\alpha\), \(b = y \mp r\sin\alpha\).</li>
   </ul>
+  <div class="note"><b>No ρ, θ here.</b> ρ and θ are the parameters of a <em>line</em>. For another shape, use <em>that</em> shape's parameters: a circle uses \((a, b, r)\); a circle touching the x-axis uses \((c, d)\). The method is the same: loop over some parameters, solve the shape's equation for the rest, add a vote.</div>
   <h4>Quiz 4 Q4: circles tangent to the x-axis</h4>
   <p>Centre \((c, d)\), radius \(d\). Condition \((x-c)^2 + (y-d)^2 = d^2\). Expand:</p>
   \[ c^2 - 2xc + x^2 + y^2 - 2yd = 0 \;\Rightarrow\; d = \frac{(x-c)^2 + y^2}{2y} \]
@@ -1467,6 +1469,13 @@ for each edge pixel (x, y) with y ≠ 0:
         d = ((x − c)² + y²) / (2y)
         A[c, round(d)] += 1
 circles = peaks of A</pre>
+  <p><strong>Check with 3 pixels</strong> on the circle with centre (0, 2), radius 2: (0, 4), (2, 2), (−2, 2).</p>
+  <div class="tbl-wrap"><table class="mono">
+    <tr><th>c</th><th>d from (0,4)</th><th>d from (2,2)</th><th>d from (−2,2)</th></tr>
+    <tr><td>0</td><td>16/8 = 2</td><td>8/4 = 2</td><td>8/4 = 2</td></tr>
+    <tr><td>1</td><td>17/8 ≈ 2.1</td><td>5/4 ≈ 1.3</td><td>13/4 ≈ 3.3</td></tr>
+  </table></div>
+  <p>At c = 0 all three vote for d = 2, so cell (0, 2) gets 3 votes. At other c the votes scatter. Peak = the circle.</p>
   <p>Cost: (#edge pixels) × (#c values). Marks went to: solving for \(d\), looping over pixels, looping over \(c\) and incrementing.</p>
 </section>
 
